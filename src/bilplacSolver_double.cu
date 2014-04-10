@@ -2,7 +2,8 @@
 
 //FUNCTIONS
 
-static __global__ void setBoundaryCond(double2* ddu, double2* u,double2* du,double betha,double dt,int nstep,int IGLOBAL)
+
+static __global__ void setBoundaryCond(float2* ddu, float2* u,float2* du,double betha,double dt,int IGLOBAL)
 
 {  
 
@@ -21,7 +22,7 @@ static __global__ void setBoundaryCond(double2* ddu, double2* u,double2* du,doub
 		int h=i*NZ*NY+k*NY+j;
 
 
-		if(i<NXSIZE/NSTEPS & k<NZ & j<NY){
+		if(i<NXSIZE & k<NZ & j<NY){
 
 		//Read from global to shared
 
@@ -32,7 +33,7 @@ static __global__ void setBoundaryCond(double2* ddu, double2* u,double2* du,doub
 		double kk;		
 				
 		// X indices		
-		k1=(i+IGLOBAL+stride)<NX/2 ? (double)(i+IGLOBAL+stride) : (double)(i+IGLOBAL+stride)-(double)NX ;
+		k1=(i+IGLOBAL)<NX/2 ? (double)(i+IGLOBAL) : (double)(i+IGLOBAL)-(double)NX ;
 
 		// Z indices
 		k3=(double)k;
@@ -66,6 +67,9 @@ static __global__ void setBoundaryCond(double2* ddu, double2* u,double2* du,doub
 
 		if(j==0){
 
+		float2 dv_mf;
+		float2 dv_pf;
+
 		double2 dv_m;
 		double2 dv_p;
 	
@@ -77,8 +81,14 @@ static __global__ void setBoundaryCond(double2* ddu, double2* u,double2* du,doub
 
 		//Calc derivatives at boundaries and set C1 and C2
 	
-		dv_m=du[i*NZ*NY+k*NY];
-		dv_p=du[i*NZ*NY+k*NY+NY-1];
+		dv_mf=du[i*NZ*NY+k*NY];		
+		dv_pf=du[i*NZ*NY+k*NY+NY-1];
+
+		dv_m.x=(double)(dv_mf.x);
+		dv_m.y=(double)(dv_mf.y);
+
+		dv_p.x=(double)(dv_pf.x);
+		dv_p.y=(double)(dv_pf.y);
 
 		//Calc analitic solution	
 		
@@ -150,6 +160,11 @@ static __global__ void setBoundaryCond(double2* ddu, double2* u,double2* du,doub
 		double v1,v2;	
 		double dv1,dv2;
 		double ddv1,ddv2;
+
+		float2 ddu_kf;
+		float2 du_kf;	
+		float2 u_kf;
+
 		double2 ddu_k;
 		double2 du_k;	
 		double2 u_k;
@@ -209,11 +224,19 @@ static __global__ void setBoundaryCond(double2* ddu, double2* u,double2* du,doub
 		//Not reading boundary conditions
 		
 
-		ddu_k=ddu[h];
-		du_k=du[h];
-		u_k=u[h];
+		ddu_kf=ddu[h];
+		du_kf=du[h];
+		u_kf=u[h];
 		
+		ddu_k.x=(double)(ddu_kf.x);
+		ddu_k.y=(double)(ddu_kf.y);
+	
+		du_k.x=(double)(du_kf.x);
+		du_k.y=(double)(du_kf.y);
 		
+		u_k.x=(double)(u_kf.x);
+		u_k.y=(double)(u_kf.y);
+		 
 		//ddu_k.x=ddu_k.x+C1_S.x*(ddv1-kk*v1)+C2_S.x*(ddv2-kk*v2);
 		//ddu_k.y=ddu_k.y+C1_S.y*(ddv1-kk*v1)+C2_S.y*(ddv2-kk*v2);
 
@@ -243,9 +266,18 @@ static __global__ void setBoundaryCond(double2* ddu, double2* u,double2* du,doub
 
 		//it does no give v or dv
 
-		ddu[h]=ddu_k;
-		du[h]=du_k;
-		u[h]=u_k;
+		ddu_kf.x=__double2float_rn(ddu_k.x);
+		ddu_kf.y=__double2float_rn(ddu_k.y);
+
+		du_kf.x=__double2float_rn(du_k.x);
+		du_kf.y=__double2float_rn(du_k.y);
+	
+		u_kf.x=__double2float_rn(u_k.x);
+		u_kf.y=__double2float_rn(u_k.y);
+
+		ddu[h]=ddu_kf;
+		du[h]=du_kf;
+		u[h]=u_kf;
 	
  	
 	  }
@@ -258,7 +290,7 @@ static dim3 threadsPerBlock;
 static dim3 blocksPerGrid;
 
 
-static void setBoundaries(double2* ddv,double2* v,double2* dv,double betha,double dt){
+static void setBoundaries(float2* ddv,float2* v,float2* dv,float betha,float dt){
 		
 	threadsPerBlock.x=NY;
 	threadsPerBlock.y=1;
@@ -274,25 +306,12 @@ static void setBoundaries(double2* ddv,double2* v,double2* dv,double betha,doubl
 
 }
 
-extern void bilaplaSolver(double2* ddv,double2* v,double2* dv,double betha,double dt){
+extern void bilaplaSolver_double(float2* ddv, float2* v, float2* dv, float betha,float dt){
 
 
 	//Implicit time step
 	//Solves (1-0.5*dt*LAP)ddv_w=rhs with ddv(+-1)=0
 	//rhs stored in ddv_w;
-
-	for(int i=0;i<NSTEPS;i++){
-
-	setDiagkernel<<<blocksPerGrid_B,threadsPerBlock_B>>>(LDIAG,CDIAG,UDIAG,i,IGLOBAL);
-
-	rhs_A_kernel<<<blocksPerGrid,threadsPerBlock>>>(AUX,u+i*NXSIZE/NSTEPS*NZ*NY);
-	kernelCheck(RET,"hemholz");	
-
-	cusparseCheck(cusparseZgtsvStridedBatch(hemholzt_handle,NY,LDIAG,CDIAG,UDIAG,AUX,NXSIZE/NSTEPS*NZ,NY),"HEM");
-
-	cast_kernel<<<blocksPerGrid_B,threadsPerBlock_B>>>(u+i*NXSIZE/NSTEPS*NZ*NY,AUX);
-
-	}
 
 	implicitSolver(ddv,betha,dt);
 	
