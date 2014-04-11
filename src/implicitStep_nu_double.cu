@@ -201,9 +201,7 @@ static dim3 blocksPerGrid_B;
 
 static cusparseHandle_t implicit_handle;
 
-
-
-extern void implicitSolver_double(float2* u,float betha,float dt){
+extern void setImplicitDouble(void){
 
 	threadsPerBlock.x=NY;
 	threadsPerBlock.y=1;
@@ -216,6 +214,14 @@ extern void implicitSolver_double(float2* u,float betha,float dt){
 
 	blocksPerGrid_B.x=NXSIZE/NSTEPS/threadsPerBlock_B.x;
 	blocksPerGrid_B.y=NZ*NY/threadsPerBlock_B.y;
+
+
+	cusparseCheck(cusparseCreate(&implicit_handle),"Handle");
+
+}
+
+extern void implicitSolver_double(float2* u,float betha,float dt){
+
 	
 	//SIZE OF LDIAG CDIAG UDIAG AND AUX
 	//2*SIZE/NSTEPS

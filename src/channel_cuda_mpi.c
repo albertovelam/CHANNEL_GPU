@@ -11,16 +11,6 @@ static float2* aux_host2;
 static size_t size;
 static int MPIErr;
 
-static void cublasCheck(cublasStatus_t error, const char* function )
-{
-	if(error !=  CUBLAS_STATUS_SUCCESS)
-	{
-		printf("\n error  %s : %d \n", function, error);
-		exit(1);
-	}
-		
-	return;
-}  
 
 void setTransposeCudaMpi(void){
 
@@ -78,7 +68,7 @@ void transposeXYZ2YZX(float2* u1,int Nx,int Ny,int Nz,int rank,int sizeMpi){
 
 	//Transpose [NXISZE,NY,NZ] ---> [NY,myNx,NZ]
 
-	transposeBatched(AUX,(const float2*)u1,Nz,NY,myNx);
+	transposeBatched((float2*)AUX,(const float2*)u1,Nz,NY,myNx);
 	transpose(u1,(const float2*)AUX,NY,myNx*Nz);
 
 	//COPY TO HOST
@@ -97,7 +87,7 @@ void transposeXYZ2YZX(float2* u1,int Nx,int Ny,int Nz,int rank,int sizeMpi){
 	//Transpose [sizeMpi,myNy,myNx,Nz] ---> [myNy,Nz,sizeMpi,myNx]
 
 	transposeBatched(u1,(const float2*)AUX,myNx*Nz,myNy,sizeMpi);
-	transposeBatched(AUX,(const float2*)u1,myNy,Nz,sizeMpi*myNx);
+	transposeBatched((float2*)AUX,(const float2*)u1,myNy,Nz,sizeMpi*myNx);
 	transpose(u1,(const float2*)AUX,myNy*Nz,sizeMpi*myNx);
 
 
@@ -113,9 +103,9 @@ void transposeYZX2XYZ(float2* u1,int Nx,int Ny,int Nz,int rank,int sizeMpi){
 
 	//Transpose [myNy,Nz,sizeMpi,myNx] ---> [sizeMpi,NYISZE,myNx,Nz]
 
-	transpose(AUX,(const float2*)u1,sizeMpi*myNx,myNy*Nz);
+	transpose((float2*)AUX,(const float2*)u1,sizeMpi*myNx,myNy*Nz);
 	transposeBatched(u1,(const float2*)AUX,myNy*Nz,myNx,sizeMpi);
-	transposeBatched(AUX,(const float2*)u1,myNx,Nz,sizeMpi*myNy);
+	transposeBatched((float2*)AUX,(const float2*)u1,myNx,Nz,sizeMpi*myNy);
 	
 	//COPY TO HOST
 	cudaCheck(cudaMemcpy((float2*)aux_host1,(float2*)AUX,size,cudaMemcpyDeviceToHost),"copy");
@@ -133,7 +123,7 @@ void transposeYZX2XYZ(float2* u1,int Nx,int Ny,int Nz,int rank,int sizeMpi){
 
 	//Transpose [NY,myNx,Nz]--->[NXISZE,NY,Nz]  
 
-	transpose(AUX,(const float2*)u1,myNx*Nz,NY);
+	transpose((float2*)AUX,(const float2*)u1,myNx*Nz,NY);
 	transposeBatched(u1,(const float2*)AUX,NY,Nz,myNx);
 	
 

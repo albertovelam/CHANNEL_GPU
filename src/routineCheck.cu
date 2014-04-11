@@ -15,7 +15,7 @@ void checkHemholzt(void){
 	u_host_2=(float2*)malloc(SIZE);
 	
 	
-	for(int i=0;i<NX;i++){
+	for(int i=0;i<NXSIZE;i++){
 	for(int j=0;j<NY;j++){
 	for(int k=0;k<NZ;k++){
 
@@ -37,7 +37,7 @@ void checkHemholzt(void){
 	
 	//Solve Hemholzt	
 
-	hemholztSolver(u);
+	hemholztSolver_double(u);
 	//hemholztSolver_2(u);
 
 	cudaCheck(cudaMemcpy(u_host_2,u,SIZE,cudaMemcpyDeviceToHost),"MemInfo_34");
@@ -49,15 +49,17 @@ void checkHemholzt(void){
 	float error=0.0f;
 	float error_1;
 	float error_2;
+	
+	float err=0.0f;
 
 	float kx;	
 	float kz;
 
-	for(int i=0;i<NX;i++){
+	for(int i=0;i<NXSIZE;i++){
 	for(int k=0;k<NZ;k++){	
 
 		
-	kx=i<NX/2 ? (float)i : (float)i-(float)NX;
+	kx=(i+IGLOBAL)<NX/2 ? (double)(i+IGLOBAL) : (double)(i+IGLOBAL)-(double)NX ;
 	
 	kz=(float)k;
 
@@ -76,14 +78,17 @@ void checkHemholzt(void){
 	//printf("Error en Hemholzt muy grande"); exit(1);}
 
 	error+=error_1+error_2;
+	
+	if(error_1>err){
+	err=error_1;}
 
 	}	
 	}
 	}
 	
 	printf("\n*********HEMHOLZT CHECK********");
-	printf("\nError_medio=%e",error/(2*NY*NZ*NX));
-	printf("\nerror=%e Dy^4",error/(2*NY*NZ*NX)*pow(NY-1,4));
+	printf("\nError_medio(%d)=%e",error/(2*NY*NZ*NXSIZE),RANK);
+	printf("\nError_max(%d)=%e",err,RANK);
 	printf("\n\n");
 
 	FILE* fp1;
@@ -173,7 +178,9 @@ void checkDerivatives(void){
 	float kz;
 
 	//Derivada primera
-    float err=0.0f;
+	 float err_y=0.0f;
+	 float err_yy=0.0f;
+
 	for(int i=0;i<NXSIZE;i++){
 	for(int k=0;k<NZ;k++){	
 
@@ -191,27 +198,21 @@ void checkDerivatives(void){
 	error_1=abs(acos(-1.0f)*cos(acos(-1.0f)*Fmesh(j*DELTA_Y-1.0f))-u_host_1[h].x);
 	error_2=abs(u_host_1[h].y);
 
-	/*
-	if(error_1>1e-3 || error_2>1e-3){
-	printf("\n Error en derivada primera muy grande (i,k)=(%d,%d)",i,k); //exit(1);
-	}
-	*/
-
-	if(error_1>err){
-	err=error_1;}
+	if(error_1>err_y){
+	err_y=error_1;}
 
 	error_y+=error_1+error_2;
+
 
 	}	
 	}
 	}
 
-	printf("\nerr=%e",err);
 
-	/*
+	
 	//Derivada segunda	
 
-	for(int i=0;i<NX;i++){
+	for(int i=0;i<NXSIZE;i++){
 	for(int k=0;k<NZ;k++){	
 
 		
@@ -223,13 +224,11 @@ void checkDerivatives(void){
 		
 	int h=i*NZ*NY+k*NY+j;
 
-	error_1=abs(-pow(acos(-1.0f),2.0f)*sin(acos(-1.0f)*(float)j*DELTA_Y)-u_host_2[h].x);
+	error_1=abs(-acos(-1.0f)*acos(-1.0f)*sin(acos(-1.0f)*Fmesh(j*DELTA_Y-1.0f))-u_host_2[h].x);
 	error_2=abs(u_host_2[h].y);
 
-	
-	if(error_1>1e-2 || error_2>1e-2){
-	printf("\n Error en derivada segunda muy grande (i,k)=(%d,%d,%d)",i,k,j); //exit(1);
-	}
+	if(error_1>err_yy){
+	err_yy=error_1;}
 	
 
 	error_yy+=error_1+error_2;
@@ -237,23 +236,23 @@ void checkDerivatives(void){
 	}	
 	}
 	}
-	*/
+	
 	//Derivada segunda	
 	
 	printf("\n*********DERIVATIVES: first derivative CHECK********");
-	printf("\nError_medio=%e",error_y/(2*NY*NZ*NX));
-	printf("\nerror=%e Dy^4",error_y/(2*NY*NZ*NX)*pow(1.0f/DELTA_Y,4));
+	printf("\nError_medio(%d)=%e",error_y/(NY*NZ*NXSIZE),RANK);
+	printf("\nError_max(%d)=%e",err_y,RANK);
 	printf("\n\n");	
 
-	/*
+	
 	//Derivada segunda	
 	
-	printf("\n*********DERIVATIVES: second derivative CHECK********");
-	printf("\nError_medio=%e",error_yy/(2*NY*NZ*NX));
-	printf("\nerror=%e Dy^3",error_yy/(2*NY*NZ*NX)*pow(1.0f/DELTA_Y,3));
+	printf("\n*********DERIVATIVES: second derivative CHECK*******");
+	printf("\nError_medio(%d)=%e",error_yy/(NY*NZ*NXSIZE),RANK);
+	printf("\nError_max(%d)=%e",err_yy,RANK);
 	printf("\n\n");
 
-	*/
+	
 
 	FILE* fp1;
 	fp1=fopen("derivatives_check.dat","w");
@@ -298,7 +297,7 @@ void checkImplicit(void){
 	u_host_2=(float2*)malloc(SIZE);
 	
 	
-	for(int i=0;i<NX;i++){
+	for(int i=0;i<NXSIZE;i++){
 	for(int j=0;j<NY;j++){
 	for(int k=0;k<NZ;k++){
 
@@ -341,7 +340,8 @@ void checkImplicit(void){
 	}
 	*/
 
-	implicitSolver(u,betha,dt);
+	//implicitSolver(u,betha,dt);
+	implicitSolver_double(u,betha,dt);
 	
 	cudaCheck(cudaMemcpy(u_host_1,u,SIZE,cudaMemcpyDeviceToHost),"MemInfo_34");
 	cudaCheck(cudaMemcpy(u_host_2,v,SIZE,cudaMemcpyDeviceToHost),"MemInfo_34");
@@ -371,7 +371,7 @@ void checkImplicit(void){
 
 	//Implicit solver check
 
-	float error_y;
+	float error_y=0.0f;
 
 	float error_1=0.0f;
 	float error_2=0.0f;
@@ -380,17 +380,21 @@ void checkImplicit(void){
 	float kz;
 
 	//float time=dt*N_steps;
-
-	for(int i=0;i<NX;i++){
+	
+	float error_max=0.0f;
+		
+	for(int i=0;i<NXSIZE;i++){
 	for(int k=0;k<NZ;k++){	
 
 		
-	kx=i<NX/2 ? (float)i : (float)i-(float)NX;
+	kx=(i+IGLOBAL)<NX/2 ? (double)(i+IGLOBAL) : (double)(i+IGLOBAL)-(double)NX ;
 	kz=(float)k;
 	
 		
 	kx=(PI2/LX)*kx;
 	kz=(PI2/LZ)*kz;	
+
+	
 
 	for(int j=0;j<NY;j++){
 		
@@ -406,8 +410,12 @@ void checkImplicit(void){
 	printf("Error en derivada primera muy grande"); exit(1);}
 	*/
 
+	if(error_1>error_max){
+	error_max=error_1;}
+
 	error_y+=error_1+error_2;
 
+	
 
 	}	
 	}
@@ -416,8 +424,8 @@ void checkImplicit(void){
 	//Derivada segunda	
 	
 	printf("\n*********IMPLICIT: CHECK********");
-	printf("\nError_medio=%e",error_y/(2*NY*NZ*NX));
-	printf("\nerror=%e Dy^3",error_y/(2*NY*NZ*NX)*pow(1.0f/DELTA_Y,3));
+	printf("\nError_medio(%d)=%e",RANK,error_y/(NY*NZ*NXSIZE));
+	printf("\nError_max(%d)=%e",RANK,error_max);
 	printf("\n\n");
 
 	//Check data	

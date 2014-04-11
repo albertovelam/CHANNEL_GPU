@@ -13,7 +13,6 @@ double2* AUX;
 int main(int argc, char** argv)
 { 
 
-	printf("eo");
 
 	MPI_Init(NULL,NULL);	
 	H5open();
@@ -35,8 +34,7 @@ int main(int argc, char** argv)
 	//cudaCheck(cudaGetDeviceProperties(&prop,0),"prop");
 	//if(RANK==0)	
 	//printf("\nMaxthreadperN=%d",prop.maxThreadsPerBlock);
-
-	printf("\nRANK=%d",RANK);        
+    
 
 	// Set up cuda device
 	cudaCheck(cudaSetDevice(RANK),"Set");		
@@ -58,6 +56,8 @@ int main(int argc, char** argv)
 
 	float2* ddv;
 	float2* g;
+
+	//Two buffers allocated
 
 	cudaCheck(cudaMalloc(&ddv,SIZE),"malloc");
 	cudaCheck(cudaMalloc(&g,SIZE),"malloc");

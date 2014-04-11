@@ -11,11 +11,15 @@ void setUp(void){
 	setRK3();
 
 	setDerivativesDouble();
+	setHemholztDouble();
+	setImplicitDouble();
 
 	cudaCheck(cudaMalloc(&LDIAG,SIZE_AUX),"malloc");
 	cudaCheck(cudaMalloc(&CDIAG,SIZE_AUX),"malloc");
 	cudaCheck(cudaMalloc(&UDIAG,SIZE_AUX),"malloc");
-	cudaCheck(cudaMalloc(&AUX,SIZE_AUX),"malloc");
+
+	//AUX FOR TRANPOSE
+	cudaCheck(cudaMalloc(&AUX,SIZE),"malloc");
 
 
 	return;

@@ -153,7 +153,10 @@ void writeData(float2* ddv,float2* g);
 //Hemholzt
 
 extern void setHemholzt(void);
+extern void setHemholztDouble(void);
+
 extern void hemholztSolver(float2* u);
+extern void hemholztSolver_double(float2* u);
 
 //RK
 
@@ -167,8 +170,11 @@ extern void calcHvg(float2* nl_x,float2* nl_y,float2* nl_z);
 
 //Implicit step
 
-void setImplicit(void);
+extern void setImplicit(void);
+extern void setImplicitDouble(void);
+
 extern void implicitSolver(float2* u,float betha,float dt);
+extern void implicitSolver_double(float2* u,float betha,float dt);
 
 //Derivatives
 
@@ -204,8 +210,8 @@ extern void bilaplaSolver(float2* ddv,float2* v,float2* dv,float betha,float dt)
 
 //Routine check
 void checkDerivatives(void);
-
-
+void checkHemholzt(void);
+void checkImplicit(void);
 
 
 

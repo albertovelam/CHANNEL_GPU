@@ -200,10 +200,8 @@ static dim3 blocksPerGrid_B;
 
 static cusparseHandle_t hemholzt_handle;
 
+void setHemholztDouble(void){
 
-
-extern void hemholztSolver_double(float2* u){
-		
 	threadsPerBlock.x=NY;
 	threadsPerBlock.y=1;
 
@@ -215,6 +213,16 @@ extern void hemholztSolver_double(float2* u){
 
 	blocksPerGrid_B.x=NXSIZE/NSTEPS/threadsPerBlock_B.x;
 	blocksPerGrid_B.y=NZ*NY/threadsPerBlock_B.y;
+
+
+	cusparseCheck(cusparseCreate(&hemholzt_handle),"Handle");
+
+}
+
+
+extern void hemholztSolver_double(float2* u){
+		
+
 
 	//SIZE OF LDIAG CDIAG UDIAG AND AUX
 	//2*SIZE/NSTEPS

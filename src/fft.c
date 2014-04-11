@@ -32,14 +32,14 @@ void fftDestroy(void)
 	return;
 }
 
-static void fftForward(float2* buffer)
+void fftForward(float2* buffer)
 {
 	cufftCheck(cufftExecR2C(fft2_r2c,(float*)buffer,(float2*)buffer),"forward transform");
 	
 	return;
 }
 
-static void fftBackward(float2* buffer)
+void fftBackward(float2* buffer)
 {
 	cufftCheck(cufftExecC2R(fft2_c2r,(float2*)buffer,(float*)buffer),"forward transform");
 		
@@ -211,5 +211,5 @@ float sumElements(float2* buffer_1){
 
 	return sum_all;
 
-};
+}
 

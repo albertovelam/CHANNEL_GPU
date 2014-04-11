@@ -18,6 +18,7 @@ void setRK3(void){
 
 
 	//Memory allocation
+	//8 buffers of size SIZE single precision
 
 	cudaCheck(cudaMalloc(&ddv_w,SIZE),"malloc");
 	cudaCheck(cudaMalloc(&g_w,SIZE),"malloc");
