@@ -1,9 +1,9 @@
-CC = mpic++  -O3 -std=c99   
-NVCC = /gpfs/apps/NVIDIA/CUDA/5.0/bin/nvcc -O3  
-LD =mpic++   -O3  -std=c99
-LIBS = -lcusparse -lcudart -lcufft -lcublas -lcuda  -lm  -lmpi -lhdf5 -lhdf5_hl -lszip -lconfig
-PATHS = -L/gpfs/apps/NVIDIA/CUDA/5.0/lib64 -L/gpfs/apps/NVIDIA/HDF5/1.8.8/lib -L/gpfs/apps/NVIDIA/SZIP/2.1/lib -L/gpfs/home/upm79/upm79055/libs/lib -L/gpfs/apps/NVIDIA/VGL/2.3/lib 
-INCLUDES = -I/opt/mpi/bullxmpi/1.1.11.1/include   -I/gpfs/apps/NVIDIA/CUDA/5.0/include  -I/gpfs/apps/NVIDIA/HDF5/1.8.8/include -I/gpfs/home/upm79/upm79055/libs/include
+CC = mpic++ -O3 -march=corei7-avx -mtune=corei7-avx -ffast-math
+NVCC = nvcc -O3  -arch=compute_35 -code=sm_35
+LD = mpic++ -O3 -march=corei7-avx -mtune=corei7-avx
+LIBS = -lcusparse -lcudart -lcufft -lcublas -lcuda  -lstdc++ -lm -lhdf5  -lhdf5 -lhdf5_hl -lconfig
+PATHS = -L/opt/cuda/lib64/ -L/usr/lib64 -L/usr/lib
+INCLUDES = -I/opt/cuda/include
 DEBUG = -g
 GPU_SOURCES = $(wildcard src/*.cu)
 CPU_SOURCES = $(wildcard src/*.c)

@@ -170,7 +170,8 @@ void RKstep(float2* ddv,float2* g,float time){
 		}
 
 		if(counter%1000==0){
-		imposeSymetry(ddv,g);}
+		  imposeSymetry(ddv,g);
+		}
 
 		//Advance
 		dt=dt_2;
