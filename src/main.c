@@ -9,6 +9,7 @@ double2* AUX;
 int main(int argc, char** argv)
 { 	
   int rank;
+  int i;
   int iglobal;
   int size;
   cudaDeviceProp prop;
@@ -23,10 +24,31 @@ int main(int argc, char** argv)
   MPI_Comm_size(MPI_COMM_WORLD, &size);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-  read_domain_from_config(&domain);
+
+  // Initial configuration
+  if(rank == 0){
+    read_domain_from_config(&domain);
+  }
+
+  MPI_Bcast(&(domain.nx), 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&(domain.ny), 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&(domain.nz), 1, MPI_INT, 0, MPI_COMM_WORLD);
+  
   domain.rank = rank;
   domain.size = size;
   domain.iglobal = domain.nx * domain.rank / domain.size;
+
+
+  for (i=0; i<domain.size; i++){
+    if (i == domain.rank){
+      if (i == 0) printf("rank, size, iglobal, nx, ny ,nz\n");
+      if (i == 0) printf("===============================\n");
+      printf("%d, %d, %d, %d, %d, %d\n",
+	     domain.rank, domain.size, domain.iglobal,
+	     domain.nx, domain.ny, domain.nz);
+      MPI_Barrier(MPI_COMM_WORLD);
+    }
+  }
   
   if(size != MPISIZE){
     printf("Error. The number of MPI processes is hardcoded in channel.h. Got%d, expecting %d\n",
@@ -47,7 +69,7 @@ int main(int argc, char** argv)
   if(rank == 0){	
     printf("MaxthreadperN=%d\n",prop.maxThreadsPerBlock);
   }
-  
+
   // Set up cuda device
   cudaCheck(cudaSetDevice(rank%2),domain,"Set");		
   
@@ -68,13 +90,12 @@ int main(int argc, char** argv)
   cudaCheck(cudaMalloc(&g,SIZE),domain,"malloc");
   
   //Read data
-  if(rank == 0){	
-    printf("Reading...\n");
-  }
+  if(rank == 0) printf("Reading Data...\n");
 
   readData(ddv,g,domain);
   //scale(ddv,10.0f);scale(g,10.0f);
   //genRandData(ddv,g,(float)(NX*NZ));
+
   
   if(rank == 0){
     readU();
@@ -109,19 +130,20 @@ int main(int argc, char** argv)
 
 void read_domain_from_config(domain_t *domain){
   config_t config;
+  int dummy;
   config_init(&config);
 
   if ( !config_read_file(&config, "run.conf")){
     fprintf(stderr,  "%s:%d - %s\n", config_error_file(&config),
 	    config_error_line(&config), config_error_text(&config));
     config_destroy(&config);
-    return;
+    exit(1);
   }
-  
-  domain->nx = (int) config_setting_get_int(config_lookup(&config, "application.NX"));
-  domain->ny = (int) config_setting_get_int(config_lookup(&config, "application.NY"));
-  domain->nz = (int) config_setting_get_int(config_lookup(&config, "application.NZ"));
 
+  config_lookup_int(&config, "application.NX", &(*domain).nx);
+  config_lookup_int(&config, "application.NY", &(*domain).ny);
+  config_lookup_int(&config, "application.NZ", &(*domain).nz);
+  
   config_destroy(&config);
   return;
 }

@@ -2,7 +2,7 @@
 
 void readData(float2* ddv, float2* g, domain_t domain){
 
-  float* host_buffer=(float*)malloc(domain.size);
+  float* host_buffer=(float*)malloc(SIZE);
   
   //read u
   
@@ -24,7 +24,7 @@ void readData(float2* ddv, float2* g, domain_t domain){
 			       domain.size),"read");	
   cudaCheck(cudaMemcpy(ddv,
 		       host_buffer,
-		       domain.size,
+		       SIZE,
 		       cudaMemcpyHostToDevice),domain,"MemInfo_uy");
   
   free(host_buffer);
@@ -35,14 +35,14 @@ void readData(float2* ddv, float2* g, domain_t domain){
 
 void writeData(float2* ddv,float2* g, domain_t domain){
   
-  float* host_buffer=(float*)malloc(domain.size);
+  float* host_buffer=(float*)malloc(SIZE);
   
   //read u
   
 		
   cudaCheck(cudaMemcpy(host_buffer,
 		       g,
-		       domain.size,
+		       SIZE,
 		       cudaMemcpyDeviceToHost),domain,"MemInfo_uy");
   mpiCheck(wrte_parallel_float("/drive1/guillem/Channel/G.01.h5",
 			       (float *)host_buffer,
@@ -54,7 +54,7 @@ void writeData(float2* ddv,float2* g, domain_t domain){
 
   cudaCheck(cudaMemcpy(host_buffer,
 		       ddv,
-		       domain.size,
+		       SIZE,
 		       cudaMemcpyDeviceToHost),domain,"MemInfo_uy");
   mpiCheck(wrte_parallel_float("/drive1/guillem/Channel/ddV.01.h5",
 			       (float *)host_buffer,
