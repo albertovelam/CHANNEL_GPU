@@ -36,16 +36,16 @@ int main(int argc, char** argv)
   }
   
   cudaCheck(cudaGetDeviceCount(&Ndevices),domain,"device_count");
-  printf("\nNdevices=%d",Ndevices);
+  printf("Ndevices=%d\n",Ndevices);
   
   //Local id
   iglobal=NXSIZE*rank;
-  printf("\n(SIZE,RANK)=(%d,%d)",size,rank);
+  printf("(SIZE,RANK)=(%d,%d)\n",size,rank);
   
   cudaCheck(cudaGetDeviceProperties(&prop,0),domain,"prop");
   
   if(rank == 0){	
-    printf("\nMaxthreadperN=%d",prop.maxThreadsPerBlock);
+    printf("MaxthreadperN=%d\n",prop.maxThreadsPerBlock);
   }
   
   // Set up cuda device
@@ -57,13 +57,21 @@ int main(int argc, char** argv)
   if(rank==0){
     setRKmean();
   }
-  
+
+  if(rank == 0){	
+    printf("Allocation...\n");
+  }
+
   //Allocate initial memory
   //Two buffers allocated
   cudaCheck(cudaMalloc(&ddv,SIZE),domain,"malloc");
   cudaCheck(cudaMalloc(&g,SIZE),domain,"malloc");
   
   //Read data
+  if(rank == 0){	
+    printf("Reading...\n");
+  }
+
   readData(ddv,g,domain);
   //scale(ddv,10.0f);scale(g,10.0f);
   //genRandData(ddv,g,(float)(NX*NZ));
@@ -77,6 +85,11 @@ int main(int argc, char** argv)
     checkHemholzt();
     checkImplicit();
   */
+
+  if(rank == 0){	
+    printf("Starting RK iterations...\n");
+  }
+
   RKstep(ddv,g,1,domain);
   
   //Write data
