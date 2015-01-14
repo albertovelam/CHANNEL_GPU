@@ -157,7 +157,7 @@ static FILE* fp4;
 
 float sum[NY];
 
-void calcSt(float2* dv,float2* u,float2* v,float2* w){
+void calcSt(float2* dv,float2* u,float2* v,float2* w, domain_t domain){
 	
 	threadsPerBlock.x=THREADSPERBLOCK_IN;
 	threadsPerBlock.y=THREADSPERBLOCK_IN;
@@ -169,18 +169,18 @@ void calcSt(float2* dv,float2* u,float2* v,float2* w){
 
 	int N2=NX*(2*NZ-2);
 
-	fp1=fopen("/gpfs/projects/upm79/channel_950/RSTRSS.dat","a");
-	fp2=fopen("/gpfs/projects/upm79/channel_950/URMS.dat","a");
-	fp3=fopen("/gpfs/projects/upm79/channel_950/VRMS.dat","a");
-	fp4=fopen("/gpfs/projects/upm79/channel_950/WRMS.dat","a");
+	fp1=fopen("/drive1/guillem/Channel/RSTRSS.dat","a");
+	fp2=fopen("/drive1/guillem/Channel/URMS.dat","a");
+	fp3=fopen("/drive1/guillem/Channel/VRMS.dat","a");
+	fp4=fopen("/drive1/guillem/Channel/WRMS.dat","a");
 
 	
 
 	//REYNOLD STRESSES	
-	calcReynolds<<<blocksPerGrid,threadsPerBlock>>>(dv,u,v,IGLOBAL);
-	kernelCheck(ret,"Wkernel");
+	calcReynolds<<<blocksPerGrid,threadsPerBlock>>>(dv,u,v,domain.iglobal);
+	kernelCheck(ret,domain,"Wkernel");
 
-	sumElementsComplex(dv,sum);
+	sumElementsComplex(dv,sum,domain);
 	
 	for(int j=0;j<NY;j++){
 	fprintf(fp1," %f",sqrt(sum[j]));}
@@ -189,32 +189,32 @@ void calcSt(float2* dv,float2* u,float2* v,float2* w){
 	
 	//URMS
 
-	calcRMS<<<blocksPerGrid,threadsPerBlock>>>(dv,u,IGLOBAL);
-	kernelCheck(ret,"Wkernel");
+	calcRMS<<<blocksPerGrid,threadsPerBlock>>>(dv,u,domain.iglobal);
+	kernelCheck(ret,domain,"Wkernel");
 	
 
-	sumElementsComplex(dv,sum);
+	sumElementsComplex(dv,sum,domain);
 	for(int j=0;j<NY;j++){
 	fprintf(fp2," %f",sqrt(sum[j]));}
 	fprintf(fp2," \n");
 	
 	//VRMS
 
-	calcRMS<<<blocksPerGrid,threadsPerBlock>>>(dv,v,IGLOBAL);
-	kernelCheck(ret,"Wkernel");
+	calcRMS<<<blocksPerGrid,threadsPerBlock>>>(dv,v,domain.iglobal);
+	kernelCheck(ret,domain,"Wkernel");
 
 
-	sumElementsComplex(dv,sum);
+	sumElementsComplex(dv,sum,domain);
 	for(int j=0;j<NY;j++){
 	fprintf(fp3," %f",sqrt(sum[j]));}
 	fprintf(fp3," \n");
 
 	//WRMS
 
-	calcRMS<<<blocksPerGrid,threadsPerBlock>>>(dv,w,IGLOBAL);
-	kernelCheck(ret,"Wkernel");
+	calcRMS<<<blocksPerGrid,threadsPerBlock>>>(dv,w,domain.iglobal);
+	kernelCheck(ret,domain,"Wkernel");
 
-	sumElementsComplex(dv,sum);
+	sumElementsComplex(dv,sum,domain);
 	for(int j=0;j<NY;j++){
 	fprintf(fp4," %f",sqrt(sum[j]));}
 	fprintf(fp4," \n");

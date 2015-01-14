@@ -113,20 +113,20 @@ void solve_tridiagonal_in_place_destructive(float2* x, const size_t N, const flo
 }
 
 
-void writeUmean(float2* u){
+void writeUmean(float2* u,domain_t domain){
 
 	//char mess[30];
 	//sprintf(mess,"MemInfo_Read_mean:%d",RANK) ;
-	cudaCheck(cudaMemcpy(u,u_host,NY*sizeof(float2), cudaMemcpyHostToDevice),"MemInfo_Read_mean");
-	return;
+  cudaCheck(cudaMemcpy(u,u_host,NY*sizeof(float2), cudaMemcpyHostToDevice),domain,"MemInfo_Read_mean");
+  return;
 	
 
 }
 
-void readNmean(float2* u){
+void readNmean(float2* u, domain_t domain){
 
-	cudaCheck(cudaMemcpy(N_host,u,NY*sizeof(float2), cudaMemcpyDeviceToHost),"MemInfo_Read_Nmean");
-	return;
+  cudaCheck(cudaMemcpy(N_host,u,NY*sizeof(float2), cudaMemcpyDeviceToHost),domain,"MemInfo_Read_Nmean");
+  return;
 
 
 }
@@ -154,7 +154,7 @@ void writeUmeanT(float2* u_r){
 void writeU(){
 
 	FILE* fp_w;
-	fp_w=fopen("/gpfs/projects/upm79/channel_950/Umean2.bin","wb");
+	fp_w=fopen("/drive1/guillem/Channel/Umean2.bin","wb");
 	if(fp_w==NULL){printf("\nerror escritura: %s","./data_inicial/Umean.bin"); exit(1);}
 	size_t fsize =fwrite( (unsigned char*)u_host,sizeof(float2),NY,fp_w);
 	if(fsize!=NY){ printf("\nwriting error: %s","./data_inicial/Umean.bin"); exit(1);}
@@ -167,7 +167,7 @@ void writeU(){
 void readU(){
 
 	FILE* fp_r;
-	fp_r=fopen("/gpfs/projects/upm79/channel_950/Umean2.bin","rb");
+	fp_r=fopen("/drive1/guillem/Channel/Umean2.bin","rb");
 	if(fp_r==NULL){printf("\nerror lectura: %s","./data_inicial/Umean2.bin"); exit(1);}
 	size_t fsize =fread( (unsigned char*)u_host,sizeof(float2),NY,fp_r);
 	if(fsize!=NY){ printf("\nreading error: %s,%d","./data_inicial/Umean.bin",fsize); exit(1);}
@@ -176,11 +176,11 @@ void readU(){
 
 }
 
-void readUtau(float2* wz){
+void readUtau(float2* wz, domain_t domain){
 
 
-	cudaCheck(cudaMemcpy(&Utau_1,wz,sizeof(float2),cudaMemcpyDeviceToHost),"MemInfo1");
-	cudaCheck(cudaMemcpy(&Utau_2,wz+NY-1,sizeof(float2),cudaMemcpyDeviceToHost),"MemInfo1");
+  cudaCheck(cudaMemcpy(&Utau_1,wz,sizeof(float2),cudaMemcpyDeviceToHost),domain,"MemInfo1");
+  cudaCheck(cudaMemcpy(&Utau_2,wz+NY-1,sizeof(float2),cudaMemcpyDeviceToHost),domain,"MemInfo1");
 
 	
 
@@ -509,11 +509,11 @@ void meanURKstep_2(float dt, int in){
 	printf("\n");
 
 
-	fp=fopen( "/gpfs/projects/upm79/channel_950/MEANPROFILE.dat","a");
-	fp1=fopen("/gpfs/projects/upm79/channel_950/MEANREAYNOLDS.dat","a");
-	fp2=fopen("/gpfs/projects/upm79/channel_950/UTAU.dat","a");
-	fp3=fopen("/gpfs/projects/upm79/channel_950/STATISTICS.dat","a");
-	fp4=fopen("/gpfs/projects/upm79/channel_950/RESOLUTION.dat","a");	
+	fp=fopen( "/drive1/guillem/Channel/MEANPROFILE.dat","a");
+	fp1=fopen("/drive1/guillem/Channel/MEANREAYNOLDS.dat","a");
+	fp2=fopen("/drive1/guillem/Channel/UTAU.dat","a");
+	fp3=fopen("/drive1/guillem/Channel/STATISTICS.dat","a");
+	fp4=fopen("/drive1/guillem/Channel/RESOLUTION.dat","a");	
 
 	
 

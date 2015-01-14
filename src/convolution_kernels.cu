@@ -149,7 +149,7 @@ static __global__ void rotorkernel(float2* wx,float2* wy,float2* wz,float2* ux,f
 
 ///////////////////FUNCTIONS///////////////////////
 
-extern void calcOmega(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,float2* uz){
+extern void calcOmega(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,float2* uz, domain_t domain){
 
 	
 	threadsPerBlock.x=THREADSPERBLOCK_IN;
@@ -160,13 +160,13 @@ extern void calcOmega(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,flo
 	blocksPerGrid.y=NZ*NY/threadsPerBlock.y;
 
 
-	calcOmegakernel<<<blocksPerGrid,threadsPerBlock>>>(wx,wy,wz,ux,uy,uz,IGLOBAL);
-	kernelCheck(RET,"Boundary");
+	calcOmegakernel<<<blocksPerGrid,threadsPerBlock>>>(wx,wy,wz,ux,uy,uz,domain.iglobal);
+	kernelCheck(RET,domain,"Boundary");
 
 
 }
 
-extern void calcRotor(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,float2* uz){
+extern void calcRotor(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,float2* uz, domain_t domain){
 
 	
 	threadsPerBlock.x=THREADSPERBLOCK_IN;
@@ -176,8 +176,8 @@ extern void calcRotor(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,flo
 	blocksPerGrid.x=NXSIZE/threadsPerBlock.x;
 	blocksPerGrid.y=NZ*NY/threadsPerBlock.y;
 
-	rotorkernel<<<blocksPerGrid,threadsPerBlock>>>(wx,wy,wz,ux,uy,uz,IGLOBAL);
-	kernelCheck(RET,"Boundary");
+	rotorkernel<<<blocksPerGrid,threadsPerBlock>>>(wx,wy,wz,ux,uy,uz,domain.iglobal);
+	kernelCheck(RET,domain,"Boundary");
 
 
 }

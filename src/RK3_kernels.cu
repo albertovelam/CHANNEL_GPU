@@ -152,31 +152,31 @@ static void __global__ rk_step_2(float2* u_wx,float2* u_wy,float2* rx, float2* r
 	
 }
 
-extern void RKstep_1(float2* ddv,float2* g,float2* ddv_w,float2* g_w,float2* Rddv,float2* Rg,float dt,int in)
+extern void RKstep_1(float2* ddv,float2* g,float2* ddv_w,float2* g_w,float2* Rddv,float2* Rg,float dt,int in,domain_t domain)
 {
 	
-	cudaCheck(cudaMemcpy(ddv_w,ddv,SIZE, cudaMemcpyDeviceToDevice),"MemInfo_ABCN");
-	cudaCheck(cudaMemcpy(g_w,g,SIZE, cudaMemcpyDeviceToDevice),"MemInfo_ABCN");
+  cudaCheck(cudaMemcpy(ddv_w,ddv,SIZE, cudaMemcpyDeviceToDevice),domain,"MemInfo_ABCN");
+  cudaCheck(cudaMemcpy(g_w,g,SIZE, cudaMemcpyDeviceToDevice),domain,"MemInfo_ABCN");
 
 	
-	//Derivada segunda YY stored in ddv_w y g_w
-	deriv_YY_HO_double(ddv_w);
-	deriv_YY_HO_double(g_w);
+  //Derivada segunda YY stored in ddv_w y g_w
+  deriv_YY_HO_double(ddv_w, domain);
+  deriv_YY_HO_double(g_w, domain);
+  
+  threadsPerBlock.x= THREADSPERBLOCK_IN;
+  threadsPerBlock.y= THREADSPERBLOCK_IN;
 
-	threadsPerBlock.x= THREADSPERBLOCK_IN;
-	threadsPerBlock.y= THREADSPERBLOCK_IN;
-
-	blocksPerGrid.x=NXSIZE/threadsPerBlock.x;
-	blocksPerGrid.y=NZ*NY/threadsPerBlock.y;
-
-	//first step
-	rk_step_1<<<blocksPerGrid,threadsPerBlock>>>(ddv,g,ddv_w,g_w,Rddv,Rg,dt,in,IGLOBAL);
-	kernelCheck(RET,"RK");	
-	
-	return;
+  blocksPerGrid.x=NXSIZE/threadsPerBlock.x;
+  blocksPerGrid.y=NZ*NY/threadsPerBlock.y;
+  
+  //first step
+  rk_step_1<<<blocksPerGrid,threadsPerBlock>>>(ddv,g,ddv_w,g_w,Rddv,Rg,dt,in,domain.iglobal);
+  kernelCheck(RET,domain,"RK");	
+  
+  return;
 }
 
-extern void RKstep_2(float2* ddv_w,float2* g_w,float2* Rddv,float2* Rg,float dt,int in)
+extern void RKstep_2(float2* ddv_w,float2* g_w,float2* Rddv,float2* Rg,float dt,int in,domain_t domain)
 {
 
 	threadsPerBlock.x= THREADSPERBLOCK_IN;
@@ -187,8 +187,8 @@ extern void RKstep_2(float2* ddv_w,float2* g_w,float2* Rddv,float2* Rg,float dt,
 
 
 	// RK substeps
-	 rk_step_2<<<blocksPerGrid,threadsPerBlock>>>(ddv_w,g_w,Rddv,Rg,dt,in,IGLOBAL);
-	 kernelCheck(RET,"RK");
+	 rk_step_2<<<blocksPerGrid,threadsPerBlock>>>(ddv_w,g_w,Rddv,Rg,dt,in,domain.iglobal);
+	 kernelCheck(RET,domain,"RK");
 
 	return;
 }

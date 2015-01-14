@@ -205,7 +205,7 @@ static dim3 blocksPerGrid_B;
 
 static cusparseHandle_t hemholzt_handle;
 
-extern void setHemholztDouble(void){
+extern void setHemholztDouble(domain_t domain){
 
 	threadsPerBlock.x=NY;
 	threadsPerBlock.y=1;
@@ -220,12 +220,12 @@ extern void setHemholztDouble(void){
 	blocksPerGrid_B.y=NZ*NY/threadsPerBlock_B.y;
 
 
-	cusparseCheck(cusparseCreate(&hemholzt_handle),"Handle");
+	cusparseCheck(cusparseCreate(&hemholzt_handle),domain,"Handle");
 
 }
 
 
-extern void hemholztSolver_double(float2* u){
+extern void hemholztSolver_double(float2* u, domain_t domain){
 		
 
 
@@ -234,12 +234,14 @@ extern void hemholztSolver_double(float2* u){
 
 	for(int i=0;i<NSTEPS;i++){
 
-	setDiagkernel<<<blocksPerGrid_B,threadsPerBlock_B>>>(LDIAG,CDIAG,UDIAG,i,IGLOBAL);
+	setDiagkernel<<<blocksPerGrid_B,threadsPerBlock_B>>>(LDIAG,CDIAG,UDIAG,i,domain.iglobal);
 
 	rhs_A_kernel<<<blocksPerGrid,threadsPerBlock>>>(AUX,u+i*NXSIZE/NSTEPS*NZ*NY);
-	kernelCheck(RET,"hemholz");	
+	kernelCheck(RET,domain,"hemholz");	
 
-	cusparseCheck(cusparseZgtsvStridedBatch(hemholzt_handle,NY,LDIAG,CDIAG,UDIAG,AUX,NXSIZE/NSTEPS*NZ,NY),"HEM");
+	cusparseCheck(cusparseZgtsvStridedBatch(hemholzt_handle,NY,LDIAG,CDIAG,UDIAG,AUX,NXSIZE/NSTEPS*NZ,NY),
+		      domain,
+		      "HEM");
 
 	cast_kernel<<<blocksPerGrid_B,threadsPerBlock_B>>>(u+i*NXSIZE/NSTEPS*NZ*NY,AUX);
 

@@ -2,18 +2,18 @@
 
 
 
-void imposeSymetry(float2* u,float2* v){
+void imposeSymetry(float2* u,float2* v, domain_t domain){
 
-        fftBackwardTranspose(u);
-        fftBackwardTranspose(v);
+  fftBackwardTranspose(u, domain);
+  fftBackwardTranspose(v, domain);
 
-        fftForwardTranspose(u);
-        fftForwardTranspose(v);
+  fftForwardTranspose(u, domain);
+  fftForwardTranspose(v, domain);
 
-        normalize(u);
-        normalize(v);
+  normalize(u,domain);
+  normalize(v,domain);
 
-        return;
-
+  return;
+  
 }
 

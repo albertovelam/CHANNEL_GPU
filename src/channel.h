@@ -14,14 +14,24 @@
 #include <hdf5.h>
 #include <hdf5_hl.h>
 
-//MESHGRID
+#include <libconfig.h>
 
+//MESHGRID
 
 #define Fmesh(X)  (tanh(2.0*(X))/tanh(2.0))
 
-const int NX=512;
-const int NY=512;
-const int NZ=512/2+1;
+typedef struct domain_t{
+  int nx;
+  int ny;
+  int nz;
+  int rank;
+  int size;
+  int iglobal;
+} domain_t;
+
+const int NX=128;
+const int NY=128;
+const int NZ=128/2+1;
 
 //Dimensions in Y direction 
 // h=1.0f channel height 2.0f
@@ -37,7 +47,7 @@ const float LZ=0.5f*PI2;
 
 //Reynolds number and bulk velocity
 
-const float REYNOLDS=0.2058e5;
+const float REYNOLDS=3250.0;
 const float QVELOCITY=1.8f;
 
 static cublasHandle_t   CUBLAS_HANDLE; 
@@ -47,7 +57,7 @@ static const int THREADSPERBLOCK_IN=16;
 
 //MPI number of process
 
-const int MPISIZE=8;
+const int MPISIZE=2;
 
 const int NXSIZE=NX/MPISIZE;
 const int NYSIZE=NY/MPISIZE;
@@ -70,7 +80,7 @@ extern double2* CDIAG;
 extern double2* AUX;
 
 
-const int NSTEPS=2;
+const int NSTEPS=4;
 const int SIZE_AUX=2*SIZE/NSTEPS;
 
 //CUSPARSE HANDELS
@@ -80,41 +90,44 @@ const int SIZE_AUX=2*SIZE/NSTEPS;
 
 //Set up
 
-void setUp(void);
+void read_domain_from_config(domain_t*);
+void setUp(domain_t domain);
 
 //fft
 
-void fftSetup(void);
+void fftSetup(domain_t domain);
 void fftDestroy(void);
 
-void fftBackward(float2* buffer);
-void fftForward(float2* buffer);
+void fftBackward(float2* buffer, domain_t domain);
+void fftForward(float2* buffer, domain_t domain);
 
-void fftBackwardTranspose(float2* u2);
-void fftForwardTranspose(float2* u2);
+void fftBackwardTranspose(float2* u2, domain_t domain);
+void fftForwardTranspose(float2* u2, domain_t domain);
 
-void calcUmax(float2* u_x,float2* u_y,float2* u_z,float* ux,float* uy,float* uz);
-void calcDmax(float2* u_x,float2* u_y,float* ux,float* uy);
+void calcUmax(float2* u_x,float2* u_y,float2* u_z,float* ux,float* uy,float* uz, domain_t domain);
+void calcDmax(float2* u_x,float2* u_y,float* ux,float* uy, domain_t domain);
 
-float sumElementsReal(float2* buffer_1);
-void sumElementsComplex(float2* buffer_1,float* out);
+float sumElementsReal(float2* buffer_1, domain_t domain);
+void sumElementsComplex(float2* buffer_1,float* out, domain_t domain);
 
 //Rk
 
-void RKstep(float2* ddv,float2* g,float time);
-void setRK3(void);
+void RKstep(float2* ddv,float2* g,float time, domain_t domain);
+void setRK3(domain_t domain);
 
 //Non linear
-void calcNL(float2* ddv,float2* g,float2* R_ddv,float2* R_g,float2* u,float2* v,float2* w,float2* dv,int ii,int counter);
+void calcNL(float2* ddv,float2* g,float2* R_ddv,float2* R_g,
+	    float2* u,float2* v,float2* w,
+	    float2* dv,int ii,int counter, domain_t domain);
 
 //Mean velocity profile
 
 void setRKmean(void);
 
-void readNmean(float2* u);
-void writeUmean(float2* u);
+void readNmean(float2* u, domain_t domain);
+void writeUmean(float2* u, domain_t domain);
 void readUmean(float2* u);
-void readUtau(float2* wz);	
+void readUtau(float2* wz, domain_t domain);	
 
 void writeU();
 void readU();
@@ -146,28 +159,28 @@ int wrte_parallel_double(char *filename, double *x, int NX, int NY, int NZ,
 			 int rank, int size);
 
 //ImposeSymetry
-void imposeSymetry(float2* u,float2* v);
+void imposeSymetry(float2* u,float2* v, domain_t domain);
 
 //Convolution
 
-void convolution(float2* ux,float2* uy,float2* uz,float2* wx,float2* wy,float2* wz);
+void convolution(float2* ux,float2* uy,float2* uz,float2* wx,float2* wy,float2* wz, domain_t domain);
 
 //io
 
-void readData(float2* ddv,float2* g);
-void writeData(float2* ddv,float2* g);
-void genRandData(float2* ddv,float2* g,float F);
+void readData(float2* ddv,float2* g, domain_t domain);
+void writeData(float2* ddv,float2* g, domain_t domain);
+void genRandData(float2* ddv,float2* g,float F, domain_t domain);
 
 //CUDA local transpose
 
-void setTransposeCudaMpi(void);
-void transposeXYZ2YZX(float2* u1,int Nx,int Ny,int Nz,int rank,int sizeMpi);
-void transposeYZX2XYZ(float2* u1,int Nx,int Ny,int Nz,int rank,int sizeMpi);
-void transposeBatched(float2* u_2,const float2* u_1,int Nx,int Ny,int batch);
-void transpose(float2* u_2,const float2* u_1,int Nx,int Ny);
+void setTransposeCudaMpi(domain_t domain);
+void transposeXYZ2YZX(float2* u1,int Nx,int Ny,int Nz,int rank,int sizeMpi, domain_t domain);
+void transposeYZX2XYZ(float2* u1,int Nx,int Ny,int Nz,int rank,int sizeMpi, domain_t domain);
+void transposeBatched(float2* u_2,const float2* u_1,int Nx,int Ny,int batch, domain_t domain);
+void transpose(float2* u_2,const float2* u_1,int Nx,int Ny, domain_t domain);
 
 //Statistics
-void calcSt(float2* dv,float2* u,float2* v,float2* w);
+void calcSt(float2* dv,float2* u,float2* v,float2* w, domain_t domain);
 
 
 //Routine check
@@ -179,64 +192,64 @@ void checkImplicit(void);
 
 //Hemholzt
 
-extern void setHemholzt(void);
-extern void setHemholztDouble(void);
+extern void setHemholzt(domain_t domain);
+extern void setHemholztDouble(domain_t domain);
 
-extern void hemholztSolver(float2* u);
-extern void hemholztSolver_double(float2* u);
+extern void hemholztSolver(float2* u, domain_t domain);
+extern void hemholztSolver_double(float2* u, domain_t domain);
 
 //RK
 
-extern void RKstep_1(float2* ddv,float2* g,float2* ddv_w,float2* g_w,float2* Rddv,float2* Rg,float dt,int in);
-extern void RKstep_2(float2* ddv_w,float2* g_w,float2* Rddv,float2* Rg,float dt,int in);
+extern void RKstep_1(float2* ddv,float2* g,float2* ddv_w,float2* g_w,float2* Rddv,float2* Rg,float dt,int in, domain_t domain);
+extern void RKstep_2(float2* ddv_w,float2* g_w,float2* Rddv,float2* Rg,float dt,int in, domain_t domain);
 
 //Non linear
 
-extern void calcUW(float2* ux,float2* uz, float2* f,float2* g);
-extern void calcHvg(float2* nl_x,float2* nl_y,float2* nl_z);
+extern void calcUW(float2* ux,float2* uz, float2* f,float2* g, domain_t domain);
+extern void calcHvg(float2* nl_x,float2* nl_y,float2* nl_z, domain_t domain);
 
 //Implicit step
 
-extern void setImplicit(void);
-extern void setImplicitDouble(void);
+extern void setImplicit(domain_t domain);
+extern void setImplicitDouble(domain_t domain);
 
-extern void implicitSolver(float2* u,float betha,float dt);
-extern void implicitSolver_double(float2* u,float betha,float dt);
+extern void implicitSolver(float2* u,float betha,float dt, domain_t domain);
+extern void implicitSolver_double(float2* u,float betha,float dt, domain_t domain);
 
 //Derivatives
 
-extern void setDerivatives_HO(void);
-extern void deriv_Y_HO(float2* u);
-extern void deriv_YY_HO(float2* u);
+extern void setDerivatives_HO(domain_t domain);
+extern void deriv_Y_HO(float2* u, domain_t domain);
+extern void deriv_YY_HO(float2* u, domain_t domain);
 
-void setDerivativesDouble(void);
-extern void deriv_Y_HO_double(float2* u);
-extern void deriv_YY_HO_double(float2* u);
+void setDerivativesDouble(domain_t domain);
+extern void deriv_Y_HO_double(float2* u, domain_t domain);
+extern void deriv_YY_HO_double(float2* u, domain_t domain);
 
 //Dealias
-extern void dealias(float2* u);
-extern void set2zero(float2* u);
-extern void normalize(float2* u);
-extern void scale(float2* u,float S);
+extern void dealias(float2* u, domain_t domain);
+extern void set2zero(float2* u, domain_t domain);
+extern void normalize(float2* u, domain_t domain);
+extern void scale(float2* u,float S, domain_t domain);
 
 //Convolution kernels
 
-extern void calcOmega(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,float2* uz);
-extern void calcRotor(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,float2* uz);
+extern void calcOmega(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,float2* uz, domain_t domain);
+extern void calcRotor(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,float2* uz, domain_t domain);
 
 //Check
 
-extern void kernelCheck( cudaError_t error, const char* function);
-extern void cufftCheck( cufftResult error, const char* function );
-extern void cusparseCheck( cusparseStatus_t error, const char* function );
-extern void cublasCheck(cublasStatus_t error, const char* function);
-extern void cudaCheck( cudaError_t error, const char* function);
+extern void kernelCheck( cudaError_t error, domain_t domain, const char* function);
+extern void cufftCheck( cufftResult error, domain_t domain, const char* function );
+extern void cusparseCheck( cusparseStatus_t error, domain_t domain, const char* function );
+extern void cublasCheck(cublasStatus_t error, domain_t domain, const char* function);
+extern void cudaCheck( cudaError_t error, domain_t domain, const char* function);
 extern void mpiCheck( int error, const char* function);
 
 //Bilaplacian
 
-extern void bilaplaSolver(float2* ddv,float2* v,float2* dv,float betha,float dt);
-extern void bilaplaSolver_double(float2* ddv, float2* v, float2* dv, float betha,float dt);
+extern void bilaplaSolver(float2* ddv,float2* v,float2* dv,float betha,float dt, domain_t domain);
+extern void bilaplaSolver_double(float2* ddv, float2* v, float2* dv, float betha,float dt, domain_t domain);
 
 
 //Phase shift 

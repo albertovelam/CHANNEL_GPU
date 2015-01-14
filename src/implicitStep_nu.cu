@@ -180,14 +180,14 @@ static dim3 blocksPerGrid_B;
 
 static cusparseHandle_t implicit_handle;
 
-void setImplicit(void){
+void setImplicit(domain_t domain){
 
 
-		cusparseCheck(cusparseCreate(&implicit_handle),"Handle");	
+		cusparseCheck(cusparseCreate(&implicit_handle),domain,"Handle");	
 
-		cudaCheck(cudaMalloc(&udiag,SIZE),"C");
-		cudaCheck(cudaMalloc(&ldiag,SIZE),"C");
-		cudaCheck(cudaMalloc(&cdiag,SIZE),"C");
+		cudaCheck(cudaMalloc(&udiag,SIZE),domain,"C");
+		cudaCheck(cudaMalloc(&ldiag,SIZE),domain,"C");
+		cudaCheck(cudaMalloc(&cdiag,SIZE),domain,"C");
 
 		//Set work groups for A matrix
 
@@ -210,23 +210,23 @@ void setImplicit(void){
 
 }
 
-static void setDiag(float2* lidag,float2* cdiag,float2* udiag,float betha,float dt){
+static void setDiag(float2* lidag,float2* cdiag,float2* udiag,float betha,float dt,domain_t domain){
 
-	setDiagkernel<<<blocksPerGrid_B,threadsPerBlock_B>>>(ldiag,cdiag,udiag,betha,dt,IGLOBAL);
-	kernelCheck(RET,"deriv_kernel");	
+	setDiagkernel<<<blocksPerGrid_B,threadsPerBlock_B>>>(ldiag,cdiag,udiag,betha,dt,domain.iglobal);
+	kernelCheck(RET,domain,"deriv_kernel");	
 
 	return;
 }
 
 
-extern void implicitSolver(float2* u,float betha,float dt){
+extern void implicitSolver(float2* u,float betha,float dt,domain_t domain){
 
 	rhs_A_kernel<<<blocksPerGrid_A,threadsPerBlock_A>>>(u);
-	kernelCheck(RET,"deriv_kernel");	
+	kernelCheck(RET,domain,"deriv_kernel");	
 
-	setDiag(ldiag,cdiag,udiag,betha,dt);
+	setDiag(ldiag,cdiag,udiag,betha,dt,domain);
 
-	cusparseCheck(cusparseCgtsvStridedBatch(implicit_handle,NY,ldiag,cdiag,udiag,u,NXSIZE*NZ,NY),"HEM");
+	cusparseCheck(cusparseCgtsvStridedBatch(implicit_handle,NY,ldiag,cdiag,udiag,u,NXSIZE*NZ,NY),domain,"HEM");
 
 	return;
 

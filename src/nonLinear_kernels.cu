@@ -1,5 +1,4 @@
-
-#include"channel.h"
+#include "channel.h"
 
 static dim3 threadsPerBlock;
 static dim3 blocksPerGrid;
@@ -194,7 +193,7 @@ static __global__ void calcHvvkernel(float2* hx,float2* hy,int IGLOBAL)
 
 ///////////////////FUNCTIONS////////////////////////
 
-extern void calcUW(float2* ux,float2* uz, float2* f,float2* g){
+extern void calcUW(float2* ux,float2* uz, float2* f,float2* g,domain_t domain){
 
 	threadsPerBlock.x= THREADSPERBLOCK_IN;
 	threadsPerBlock.y= THREADSPERBLOCK_IN;
@@ -204,15 +203,15 @@ extern void calcUW(float2* ux,float2* uz, float2* f,float2* g){
 
 	//Calcs ux and uz out of dd_v and w_y	
 
-	calcUWkernel<<<blocksPerGrid,threadsPerBlock>>>(ux,uz,f,g,IGLOBAL);
-	kernelCheck(RET,"W_kernel");
+	calcUWkernel<<<blocksPerGrid,threadsPerBlock>>>(ux,uz,f,g,domain.iglobal);
+	kernelCheck(RET,domain,"W_kernel");
 
 	return;
 
 }
 
 
-extern void calcHvg(float2* nl_x,float2* nl_y,float2* nl_z){
+extern void calcHvg(float2* nl_x,float2* nl_y,float2* nl_z, domain_t domain){
 
 	//Calcs h_g and h_v out of nonlinear terms in x,y and z
 	
@@ -222,13 +221,13 @@ extern void calcHvg(float2* nl_x,float2* nl_y,float2* nl_z){
 	blocksPerGrid.x=NXSIZE/threadsPerBlock.x;
 	blocksPerGrid.y=NZ*NY/threadsPerBlock.y;
 
-	calcHvgkernel<<<blocksPerGrid,threadsPerBlock>>>(nl_x,nl_z,IGLOBAL);
-	kernelCheck(RET,"W_kernel");
+	calcHvgkernel<<<blocksPerGrid,threadsPerBlock>>>(nl_x,nl_z,domain.iglobal);
+	kernelCheck(RET,domain,"W_kernel");
 
-	deriv_Y_HO_double(nl_x);
+	deriv_Y_HO_double(nl_x, domain);
 
-	calcHvvkernel<<<blocksPerGrid,threadsPerBlock>>>(nl_x,nl_y,IGLOBAL);
-	kernelCheck(RET,"W_kernel");
+	calcHvvkernel<<<blocksPerGrid,threadsPerBlock>>>(nl_x,nl_y,domain.iglobal);
+	kernelCheck(RET,domain,"W_kernel");
 
 	return;
 

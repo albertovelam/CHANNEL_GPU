@@ -195,212 +195,199 @@ float2* ldiag_yy;
 
 static cusparseHandle_t derivatives_handle;
 
-extern void setDerivatives_HO(void){
+extern void setDerivatives_HO(domain_t domain){
 
-
-		cusparseCheck(cusparseCreate(&derivatives_handle),"Handle");
+  cusparseCheck(cusparseCreate(&derivatives_handle),domain,"Handle");
+  
+  
+  float2* udia_host=(float2*)malloc(SIZE);
+  float2* cdia_host=(float2*)malloc(SIZE);		
+  float2* ldia_host=(float2*)malloc(SIZE);	
+  
+  for(int i=0;i<NXSIZE;i++){
+    for(int k=0;k<NZ;k++){
+      for(int j=0;j<NY;j++){
 	
-
-		float2* udia_host=(float2*)malloc(SIZE);
-		float2* cdia_host=(float2*)malloc(SIZE);		
-		float2* ldia_host=(float2*)malloc(SIZE);	
-
-		for(int i=0;i<NXSIZE;i++){
-			for(int k=0;k<NZ;k++){
-				for(int j=0;j<NY;j++){
-		
 	
-				int h=i*NZ*NY+k*NY+j;
-
-				float a=Fmesh((j+1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);
-				float b=Fmesh((j-1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);	
-				
-				float alpha=b*b/((a-b)*(a-b));
-				float betha=a*a/((a-b)*(a-b));
-
-				udia_host[h].x=alpha;
-				udia_host[h].y=0.0f;
-		
-				cdia_host[h].x=1.0f;
-				cdia_host[h].y=0.0f;
+	int h=i*NZ*NY+k*NY+j;
 	
-				ldia_host[h].x=betha;
-				ldia_host[h].y=0.0f;
-		
-					
-
-			}
-		
-			int h_0=i*NZ*NY+k*NY;	
-
-			ldia_host[h_0+0].x=0.0f;
-			udia_host[h_0+NY-1].x=0.0f;	
-		
-			//Derivatives in boundary condition for dY
-
-			int j=0;
-
-			float a=Fmesh((j+1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);
-			float b=Fmesh((j+2)*DELTA_Y-1.0f)-Fmesh((j+1)*DELTA_Y-1.0f);
+	float a=Fmesh((j+1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);
+	float b=Fmesh((j-1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);	
 	
-
-			float alpha=(a+b)/b;
-
-			udia_host[h_0].x=alpha;
-			cdia_host[h_0].x=1.0f;
-
-			j=NY-1;
-
-			a=Fmesh((j-1)*DELTA_Y-1.0f)-Fmesh((j)*DELTA_Y-1.0f);
-			b=Fmesh((j-2)*DELTA_Y-1.0f)-Fmesh((j-1)*DELTA_Y-1.0f);
-			
-		
-
-			alpha=(a+b)/b;			
-			
-			ldia_host[h_0+NY-1].x=alpha;
-			cdia_host[h_0+NY-1].x=1.0f;
-			
-		
-				
-			}
-		}
-
-
-		//Copy to whatever
-
-		cudaCheck(cudaMalloc(&udiag_y,SIZE),"C");
-		cudaCheck(cudaMalloc(&ldiag_y,SIZE),"C");
-		cudaCheck(cudaMalloc(&cdiag_y,SIZE),"C");
-
-		cudaCheck(cudaMemcpy(udiag_y,udia_host,SIZE,cudaMemcpyHostToDevice),"C");
-		cudaCheck(cudaMemcpy(cdiag_y,cdia_host,SIZE,cudaMemcpyHostToDevice),"C");
-		cudaCheck(cudaMemcpy(ldiag_y,ldia_host,SIZE,cudaMemcpyHostToDevice),"C");
-
+	float alpha=b*b/((a-b)*(a-b));
+	float betha=a*a/((a-b)*(a-b));
 	
-
-		//Diagonals for dYY
-
-		for(int i=0;i<NXSIZE;i++){
-			for(int k=0;k<NZ;k++){
-				for(int j=0;j<NY;j++){
-
-				int h=i*NZ*NY+k*NY+j;
-		
-				float a=Fmesh((j+1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);
-				float b=Fmesh((j-1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);			
-
-				float alpha=-(-b*b*b-a*b*b+a*a*b)/(a*a*a-4.0f*a*a*b+4.0f*a*b*b-b*b*b);
-				float betha=-( a*a*a+b*a*a-b*b*a)/(a*a*a-4.0f*a*a*b+4.0f*a*b*b-b*b*b);
-
-				udia_host[h].x=alpha;
-				udia_host[h].y=0.0f;
-		
-				cdia_host[h].x=1.0f;
-				cdia_host[h].y=0.0f;
+	udia_host[h].x=alpha;
+	udia_host[h].y=0.0f;
 	
-				ldia_host[h].x=betha;
-				ldia_host[h].y=0.0f;
-		
-			}
-
-					
-			int h_0=i*NZ*NY+k*NY;	
-
-			ldia_host[h_0+0].x=0.0f;
-			udia_host[h_0+NY-1].x=0.0f;	
-		
-
-			int j=0;
-
-			float a=Fmesh((j+1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);
-			float b=Fmesh((j+2)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);
-		
-
-			float alpha=(a+b)/(2.0f*a-b);
-
-			udia_host[h_0].x=alpha;
-			cdia_host[h_0].x=1.0f;
-
-			j=NY-1;
-
-			a=Fmesh((j-1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);
-			b=Fmesh((j-2)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);
-			
-
-			alpha=(a+b)/(2.0f*a-b);			
-			
-			ldia_host[h_0+NY-1].x=alpha;
-			cdia_host[h_0+NY-1].x=1.0f;
-				
-			}
-		}
-
-		//Copy to whatever
-
-		cudaCheck(cudaMalloc(&udiag_yy,SIZE),"C");
-		cudaCheck(cudaMalloc(&ldiag_yy,SIZE),"C");
-		cudaCheck(cudaMalloc(&cdiag_yy,SIZE),"C");
-
-		cudaCheck(cudaMemcpy(udiag_yy,udia_host,SIZE,cudaMemcpyHostToDevice),"C");
-		cudaCheck(cudaMemcpy(cdiag_yy,cdia_host,SIZE,cudaMemcpyHostToDevice),"C");
-		cudaCheck(cudaMemcpy(ldiag_yy,ldia_host,SIZE,cudaMemcpyHostToDevice),"C");
-
-		//Free
+	cdia_host[h].x=1.0f;
+	cdia_host[h].y=0.0f;
 	
-		free(udia_host);
-		free(cdia_host);
-		free(ldia_host);		
+	ldia_host[h].x=betha;
+	ldia_host[h].y=0.0f;	
+      }
+		
+      int h_0=i*NZ*NY+k*NY;	
+      
+      ldia_host[h_0+0].x=0.0f;
+      udia_host[h_0+NY-1].x=0.0f;	
+      
+      //Derivatives in boundary condition for dY
+      
+      int j=0;
+      
+      float a=Fmesh((j+1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);
+      float b=Fmesh((j+2)*DELTA_Y-1.0f)-Fmesh((j+1)*DELTA_Y-1.0f);
+      
+      
+      float alpha=(a+b)/b;
+      
+      udia_host[h_0].x=alpha;
+      cdia_host[h_0].x=1.0f;
+      
+      j=NY-1;
+      
+      a=Fmesh((j-1)*DELTA_Y-1.0f)-Fmesh((j)*DELTA_Y-1.0f);
+      b=Fmesh((j-2)*DELTA_Y-1.0f)-Fmesh((j-1)*DELTA_Y-1.0f);
+      
+      alpha=(a+b)/b;			
+      
+      ldia_host[h_0+NY-1].x=alpha;
+      cdia_host[h_0+NY-1].x=1.0f;
+          
+    }
+  }
+  
+  
+  //Copy to whatever
+  
+  cudaCheck(cudaMalloc(&udiag_y,SIZE),domain,"C");
+  cudaCheck(cudaMalloc(&ldiag_y,SIZE),domain,"C");
+  cudaCheck(cudaMalloc(&cdiag_y,SIZE),domain,"C");
+  
+  cudaCheck(cudaMemcpy(udiag_y,udia_host,SIZE,cudaMemcpyHostToDevice),domain,"C");
+  cudaCheck(cudaMemcpy(cdiag_y,cdia_host,SIZE,cudaMemcpyHostToDevice),domain,"C");
+  cudaCheck(cudaMemcpy(ldiag_y,ldia_host,SIZE,cudaMemcpyHostToDevice),domain,"C");
 
-		//Set work groups
+  //Diagonals for dYY
 
-		threadsPerBlock.x=NY;
-		threadsPerBlock.y=1;
-
-		blocksPerGrid.x=NZ;
-		blocksPerGrid.y=NXSIZE;					
+  for(int i=0;i<NXSIZE;i++){
+    for(int k=0;k<NZ;k++){
+      for(int j=0;j<NY;j++){
 	
-		return;
+	int h=i*NZ*NY+k*NY+j;
+	
+	float a=Fmesh((j+1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);
+	float b=Fmesh((j-1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);			
+	
+	float alpha=-(-b*b*b-a*b*b+a*a*b)/(a*a*a-4.0f*a*a*b+4.0f*a*b*b-b*b*b);
+	float betha=-( a*a*a+b*a*a-b*b*a)/(a*a*a-4.0f*a*a*b+4.0f*a*b*b-b*b*b);
+	
+	udia_host[h].x=alpha;
+	udia_host[h].y=0.0f;
+	
+	cdia_host[h].x=1.0f;
+	cdia_host[h].y=0.0f;
+	
+	ldia_host[h].x=betha;
+	ldia_host[h].y=0.0f;
+	
+      }
+      
+      
+      int h_0=i*NZ*NY+k*NY;	
+      
+      ldia_host[h_0+0].x=0.0f;
+      udia_host[h_0+NY-1].x=0.0f;	
+      
+      
+      int j=0;
+      
+      float a=Fmesh((j+1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);
+      float b=Fmesh((j+2)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);
+      
 
-
+      float alpha=(a+b)/(2.0f*a-b);
+      
+      udia_host[h_0].x=alpha;
+      cdia_host[h_0].x=1.0f;
+      
+      j=NY-1;
+      
+      a=Fmesh((j-1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);
+      b=Fmesh((j-2)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);
+      
+      
+      alpha=(a+b)/(2.0f*a-b);			
+      
+      ldia_host[h_0+NY-1].x=alpha;
+      cdia_host[h_0+NY-1].x=1.0f;
+      
+    }
+  }
+  
+  //Copy to whatever
+  
+  cudaCheck(cudaMalloc(&udiag_yy,SIZE),domain,"C");
+  cudaCheck(cudaMalloc(&ldiag_yy,SIZE),domain,"C");
+  cudaCheck(cudaMalloc(&cdiag_yy,SIZE),domain,"C");
+  
+  cudaCheck(cudaMemcpy(udiag_yy,udia_host,SIZE,cudaMemcpyHostToDevice),domain,"C");
+  cudaCheck(cudaMemcpy(cdiag_yy,cdia_host,SIZE,cudaMemcpyHostToDevice),domain,"C");
+  cudaCheck(cudaMemcpy(ldiag_yy,ldia_host,SIZE,cudaMemcpyHostToDevice),domain,"C");
+  
+  //Free
+  
+  free(udia_host);
+  free(cdia_host);
+  free(ldia_host);		
+  
+  //Set work groups
+  
+  threadsPerBlock.x=NY;
+  threadsPerBlock.y=1;
+  
+  blocksPerGrid.x=NZ;
+  blocksPerGrid.y=NXSIZE;					
+  
+  return;
+  
+  
 }
 
 
 
-extern void deriv_Y_HO(float2* u){
+extern void deriv_Y_HO(float2* u, domain_t domain){
+  
+  deriv_Y_kernel<<<blocksPerGrid,threadsPerBlock>>>(u);
+  kernelCheck(RET,domain,"W_kernel");
+  
+  //Requires extra storage size=( 8×(3+NX*NZ)×sizeof(<type>))
 
-
-	deriv_Y_kernel<<<blocksPerGrid,threadsPerBlock>>>(u);
-	kernelCheck(RET,"W_kernel");	
-	
-	//Requires extra storage size=( 8×(3+NX*NZ)×sizeof(<type>))
-
-	cusparseCheck(cusparseCgtsvStridedBatch(derivatives_handle,NY,ldiag_y,cdiag_y,udiag_y,u,NXSIZE*NZ,NY),"HEM");
-
-	
-
+  cusparseCheck(cusparseCgtsvStridedBatch(derivatives_handle,NY,ldiag_y,cdiag_y,
+					  udiag_y,u,NXSIZE*NZ,NY),domain,"HEM");
+			
 	return;
 }
 
 
 
-extern void deriv_YY_HO(float2* u){
+extern void deriv_YY_HO(float2* u, domain_t domain){
 
-		/*
-	deriv_YY_kernel<<<blocksPerGrid,threadsPerBlock>>>(u);
-	kernelCheck(RET,"Boundary");		
-
-	//Requires extra storage size=( 8×(3+NX*NZ)×sizeof(<type>))
-
-	cusparseCheck(cusparseCgtsvStridedBatch(derivatives_handle,NY,ldiag_yy,cdiag_yy,udiag_yy,u,NX*NZ,NY),"HEM");
-		*/	
-
-	
-	deriv_Y_HO(u);
-	deriv_Y_HO(u);
-	
-
-	return;
+  /*
+    deriv_YY_kernel<<<blocksPerGrid,threadsPerBlock>>>(u);
+    kernelCheck(RET,"Boundary");		
+    
+    //Requires extra storage size=( 8×(3+NX*NZ)×sizeof(<type>))
+    
+    cusparseCheck(cusparseCgtsvStridedBatch(derivatives_handle,NY,ldiag_yy,cdiag_yy,udiag_yy,u,NX*NZ,NY),"HEM");
+  */	
+  
+  
+  deriv_Y_HO(u, domain);
+  deriv_Y_HO(u, domain);
+  
+  return;
 
 }
 
