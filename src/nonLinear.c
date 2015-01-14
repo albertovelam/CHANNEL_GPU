@@ -1,14 +1,12 @@
 #include"channel.h"
 
-void calcNL(float2* ddv,float2* g,float2* R_ddv,float2* R_g,float2* u,float2* v,float2* w,float2* dv,int ii){
-
-	
+void calcNL(float2* ddv,float2* g,float2* R_ddv,float2* R_g,float2* u,float2* v,float2* w,float2* dv,int ii,int counter){
 
 	//Calculate (wy,d_y v)---> u_x, u_z
 	calcUW(u,w,dv,g);	
 
-	if(ii==0){
-	//calcSt(dv,u,v,w);
+	if(ii==0 & counter%FREC_STATS==0){
+	calcSt(dv,u,v,w);
 	//calcSpectra(dv,u,v,w);
 	}
 

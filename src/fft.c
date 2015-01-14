@@ -2,6 +2,7 @@
 
 static cufftHandle fft2_r2c; 
 static cufftHandle fft2_c2r; 
+static cufftHandle fft2_sum; 
 
 static cublasHandle_t cublasHandle;
 
@@ -11,12 +12,15 @@ float2* u_host_2;
 
 void fftSetup(void)
 {
-	cublasCheck(cublasCreate(&cublasHandle),"Cre");
+	cublasCheck(cublasCreate(&cublasHandle),"Cre_fft");
 
 	int n[2]={NX,2*NZ-2};
+	int nsum[2]={NXSIZE,2*NZ-2};
 
 	cufftCheck(cufftPlanMany( &fft2_r2c,2,n,NULL,1,0,NULL,1,0,CUFFT_R2C,NYSIZE),"ALLOCATE_FFT3_R2C");
 	cufftCheck(cufftPlanMany( &fft2_c2r,2,n,NULL,1,0,NULL,1,0,CUFFT_C2R,NYSIZE),"ALLOCATE_FFT3_C2R");
+
+	cufftCheck(cufftPlanMany( &fft2_sum,2,nsum,NULL,1,0,NULL,1,0,CUFFT_R2C,NY),"ALLOCATE_FFT3_C2R");
 
 	u_host_1=(float2*)malloc(SIZE);
 	u_host_2=(float2*)malloc(SIZE);
@@ -49,6 +53,7 @@ void fftBackward(float2* buffer)
 
 void fftBackwardTranspose(float2* u2){
 
+	/*
 	//Copy to host
 	cudaCheck(cudaMemcpy(u_host_1,u2,SIZE,cudaMemcpyDeviceToHost),"MemInfo1");
 	
@@ -57,7 +62,9 @@ void fftBackwardTranspose(float2* u2){
 
 	//Copy to device
 	cudaCheck(cudaMemcpy(u2,u_host_2,SIZE,cudaMemcpyHostToDevice),"MemInfo1");
-	
+	*/
+
+	transposeYZX2XYZ(u2,NY,NX,NZ,RANK,MPISIZE);	
 
 	fftBackward(u2);
 		
@@ -69,7 +76,10 @@ void fftForwardTranspose(float2* u2){
 
 		
 	fftForward(u2);	
-	
+
+	transposeXYZ2YZX(u2,NY,NX,NZ,RANK,MPISIZE);	
+
+	/*
 	//Copy to host
 	cudaCheck(cudaMemcpy(u_host_1,u2,SIZE,cudaMemcpyDeviceToHost),"MemInfo1");
 
@@ -78,6 +88,7 @@ void fftForwardTranspose(float2* u2){
 
 	//Copy to device
 	cudaCheck(cudaMemcpy(u2,u_host_2,SIZE,cudaMemcpyHostToDevice),"MemInfo1");
+	*/
 
 	return;
 
@@ -180,7 +191,7 @@ void calcDmax(float2* u_x,float2* u_y,float* ux,float* uy)
 
 
 
-float sumElements(float2* buffer_1){
+float sumElementsReal(float2* buffer_1){
 
 	//destroza lo que haya en el buffer
 
@@ -199,7 +210,7 @@ float sumElements(float2* buffer_1){
 	};
 	
 
-	for(int i=1;i<NXSIZE;i++){
+	for(int i=1;i<NYSIZE;i++){
 
 	sum[0].x+=sum[i].x;
 	}
@@ -213,3 +224,34 @@ float sumElements(float2* buffer_1){
 
 }
 
+void sumElementsComplex(float2* buffer_1,float* out){
+
+	//destroza lo que haya en el buffer
+
+	float sum_all=0;
+	float2 sum[NY];
+	float2 sum1[NY];
+	float2 sum2[NY];
+
+	//Transpose [NXSIZE,NZ,NY] to [NY,NXSIZE,NZ]	
+	transpose((float2*)AUX,(const float2*)buffer_1,NY,NXSIZE*NZ);
+
+	//Transformada NYSIZE*[NX*NZ]
+	cufftCheck(cufftExecR2C(fft2_sum,(float*)(AUX),(float2*)AUX),"forward transform");
+
+	//Transpose [NXSIZE,NZ,NY] to [NY,NXSIZE,NZ]	
+	transpose((float2*)buffer_1,(const float2*)AUX,NXSIZE*NZ,NY);	
+
+	cudaCheck(cudaMemcpy((float2*)sum,(float2*)buffer_1,NY*sizeof(float2),cudaMemcpyDeviceToHost),"MemInfo1");
+
+
+ 	mpiCheck(MPI_Allreduce((float*)sum,(float*)sum2,2*NY,MPI_FLOAT,MPI_SUM,MPI_COMM_WORLD),"caca");	
+
+	for(int i=0;i<NY;i++){
+	out[i]=sum2[i].x;
+	}
+
+
+	return;
+
+}

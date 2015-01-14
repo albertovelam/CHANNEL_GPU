@@ -19,8 +19,8 @@ static __global__ void cast_kernel(float2* u,double2* v)
 
 	vd=v[h];
 
-	ud.x=__double2float_rn(vd.x);
-	ud.y=__double2float_rn(vd.y);
+	ud.x=(float)(vd.x);
+	ud.y=(float)(vd.y);
 
 
 	u[h]=ud;
@@ -424,6 +424,7 @@ extern void deriv_YY_HO_double(float2* u){
 	//SIZE OF LDIAG CDIAG UDIAG AND AUX
 	//2*SIZE/NSTEPS
 
+	/*
 	for(int i=0;i<NSTEPS;i++){
 	
 	setDiagkernel_YY<<<blocksPerGrid_B,threadsPerBlock_B>>>(LDIAG,CDIAG,UDIAG);
@@ -438,6 +439,10 @@ extern void deriv_YY_HO_double(float2* u){
 	cast_kernel<<<blocksPerGrid_B,threadsPerBlock_B>>>(u+i*NXSIZE/NSTEPS*NZ*NY,AUX);
 
 	}
+	*/
+
+	deriv_Y_HO_double(u);
+	deriv_Y_HO_double(u);
 	
 
 	return;

@@ -19,9 +19,9 @@
 
 #define Fmesh(X)  (tanh(2.0*(X))/tanh(2.0))
 
-const int NX=128;
-const int NY=128;
-const int NZ=128/2+1;
+const int NX=512;
+const int NY=512;
+const int NZ=512/2+1;
 
 //Dimensions in Y direction 
 // h=1.0f channel height 2.0f
@@ -37,8 +37,8 @@ const float LZ=0.5f*PI2;
 
 //Reynolds number and bulk velocity
 
-const float REYNOLDS=5.6e3;
-const float QVELOCITY=1.0f;
+const float REYNOLDS=0.2058e5;
+const float QVELOCITY=1.8f;
 
 static cublasHandle_t   CUBLAS_HANDLE; 
 
@@ -47,7 +47,7 @@ static const int THREADSPERBLOCK_IN=16;
 
 //MPI number of process
 
-const int MPISIZE=2;
+const int MPISIZE=8;
 
 const int NXSIZE=NX/MPISIZE;
 const int NYSIZE=NY/MPISIZE;
@@ -57,6 +57,9 @@ extern int IGLOBAL;
 
 //size local
 const int SIZE=NXSIZE*NY*NZ*sizeof(float2);
+
+//Statistics
+const int FREC_STATS=10;
 
 //BUFFERS FOR DERIVATIVES
 
@@ -84,13 +87,17 @@ void setUp(void);
 void fftSetup(void);
 void fftDestroy(void);
 
+void fftBackward(float2* buffer);
+void fftForward(float2* buffer);
+
 void fftBackwardTranspose(float2* u2);
 void fftForwardTranspose(float2* u2);
 
 void calcUmax(float2* u_x,float2* u_y,float2* u_z,float* ux,float* uy,float* uz);
 void calcDmax(float2* u_x,float2* u_y,float* ux,float* uy);
 
-float sumElements(float2* buffer_1);
+float sumElementsReal(float2* buffer_1);
+void sumElementsComplex(float2* buffer_1,float* out);
 
 //Rk
 
@@ -98,7 +105,7 @@ void RKstep(float2* ddv,float2* g,float time);
 void setRK3(void);
 
 //Non linear
-void calcNL(float2* ddv,float2* g,float2* R_ddv,float2* R_g,float2* u,float2* v,float2* w,float2* dv,int ii);
+void calcNL(float2* ddv,float2* g,float2* R_ddv,float2* R_g,float2* u,float2* v,float2* w,float2* dv,int ii,int counter);
 
 //Mean velocity profile
 
@@ -138,6 +145,9 @@ int read_parallel_double(char *filename, double *x, int NX, int NY, int NZ,
 int wrte_parallel_double(char *filename, double *x, int NX, int NY, int NZ,
 			 int rank, int size);
 
+//ImposeSymetry
+void imposeSymetry(float2* u,float2* v);
+
 //Convolution
 
 void convolution(float2* ux,float2* uy,float2* uz,float2* wx,float2* wy,float2* wz);
@@ -146,7 +156,24 @@ void convolution(float2* ux,float2* uy,float2* uz,float2* wx,float2* wy,float2* 
 
 void readData(float2* ddv,float2* g);
 void writeData(float2* ddv,float2* g);
+void genRandData(float2* ddv,float2* g,float F);
 
+//CUDA local transpose
+
+void setTransposeCudaMpi(void);
+void transposeXYZ2YZX(float2* u1,int Nx,int Ny,int Nz,int rank,int sizeMpi);
+void transposeYZX2XYZ(float2* u1,int Nx,int Ny,int Nz,int rank,int sizeMpi);
+void transposeBatched(float2* u_2,const float2* u_1,int Nx,int Ny,int batch);
+void transpose(float2* u_2,const float2* u_1,int Nx,int Ny);
+
+//Statistics
+void calcSt(float2* dv,float2* u,float2* v,float2* w);
+
+
+//Routine check
+void checkDerivatives(void);
+void checkHemholzt(void);
+void checkImplicit(void);
 
 //CUDA FUNCTIONS
 
@@ -189,6 +216,8 @@ extern void deriv_YY_HO_double(float2* u);
 //Dealias
 extern void dealias(float2* u);
 extern void set2zero(float2* u);
+extern void normalize(float2* u);
+extern void scale(float2* u,float S);
 
 //Convolution kernels
 
@@ -207,11 +236,11 @@ extern void mpiCheck( int error, const char* function);
 //Bilaplacian
 
 extern void bilaplaSolver(float2* ddv,float2* v,float2* dv,float betha,float dt);
+extern void bilaplaSolver_double(float2* ddv, float2* v, float2* dv, float betha,float dt);
 
-//Routine check
-void checkDerivatives(void);
-void checkHemholzt(void);
-void checkImplicit(void);
 
+//Phase shift 
+extern void phaseShift(float2* tx,float2* ty,float2* tz,float Delta1,float Delta3);
+extern void sumCon(float2* ax,float2* ay,float2* az,float2* tx,float2* ty,float2* tz);
 
 

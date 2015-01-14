@@ -79,14 +79,6 @@ void setRKmean(){
 	aux[j].x=0.0f;
 	aux[j].y=0.0f;	
 	}	
-
-	fp=fopen( "MEANPROFILE.dat","w");
-	fp1=fopen("meanReynold.dat","w");
-	fp2=fopen("UTAU.dat","w");
-	fp3=fopen("STATISTICS.dat","w");
-	fp4=fopen("RESOLUTION.dat","w");	
-	
-
 	
 }
 
@@ -162,7 +154,7 @@ void writeUmeanT(float2* u_r){
 void writeU(){
 
 	FILE* fp_w;
-	fp_w=fopen("./data_inicial/Umean.bin","wb");
+	fp_w=fopen("/gpfs/projects/upm79/channel_950/Umean2.bin","wb");
 	if(fp_w==NULL){printf("\nerror escritura: %s","./data_inicial/Umean.bin"); exit(1);}
 	size_t fsize =fwrite( (unsigned char*)u_host,sizeof(float2),NY,fp_w);
 	if(fsize!=NY){ printf("\nwriting error: %s","./data_inicial/Umean.bin"); exit(1);}
@@ -175,8 +167,8 @@ void writeU(){
 void readU(){
 
 	FILE* fp_r;
-	fp_r=fopen("./data_inicial/Umean.bin","rb");
-	if(fp_r==NULL){printf("\nerror lectura: %s","./data_inicial/Umean.bin"); exit(1);}
+	fp_r=fopen("/gpfs/projects/upm79/channel_950/Umean2.bin","rb");
+	if(fp_r==NULL){printf("\nerror lectura: %s","./data_inicial/Umean2.bin"); exit(1);}
 	size_t fsize =fread( (unsigned char*)u_host,sizeof(float2),NY,fp_r);
 	if(fsize!=NY){ printf("\nreading error: %s,%d","./data_inicial/Umean.bin",fsize); exit(1);}
 	fclose(fp_r);
@@ -508,13 +500,23 @@ void meanURKstep_2(float dt, int in){
 
 	u_tau=sqrt(0.5f*(pow(Utau_1.x,2.0f)+pow(Utau_2.x,2.0f)));
 
+	printf("\n****MEAN_PROFILE_STATISTICS****");
 	printf("\n(RE_t,RE_c,RE_m)=(%e,%e,%e)",u_tau*LY*0.5f/nu,u_host[NY/2].x*0.5f*LY/(nu*N2),1.0f/nu);
-	printf("\n(Dx+,Dz+)=(%e,%e)",(3.0f/2.0f)*u_tau*acos(-1.0f)*LX/(nu*NX),(3.0f/2.0f)*u_tau*acos(-1.0f)*LZ/(nu*NZ));
+	printf("\n(Dx+,Dz+)=(%e,%e)",(3.0f/2.0f)*u_tau*LX/(nu*NX),(3.0f/2.0f)*u_tau*LZ/(nu*(2*NZ-2)));
 	printf("\nDy+(max,min)=(%f,%f)",u_tau*(Fmesh((NY/2+1)*DELTA_Y-1.0f)-Fmesh((NY/2)*DELTA_Y-1.0f))/(nu),u_tau*(Fmesh(1*DELTA_Y-1.0f)-Fmesh(0*DELTA_Y-1.0f))/(nu));	
 	printf("\nC_f=%e",2.0f*u_tau/(Umean*Umean));
 	printf("\n(Um+,Ux+,Um/Uc)=(%f,%f,%f)",Umean/u_tau,u_host[NY/2].x/(u_tau*N2),Umean*N2/u_host[NY/2].x);
+	printf("\n");
+
+
+	fp=fopen( "/gpfs/projects/upm79/channel_950/MEANPROFILE.dat","a");
+	fp1=fopen("/gpfs/projects/upm79/channel_950/MEANREAYNOLDS.dat","a");
+	fp2=fopen("/gpfs/projects/upm79/channel_950/UTAU.dat","a");
+	fp3=fopen("/gpfs/projects/upm79/channel_950/STATISTICS.dat","a");
+	fp4=fopen("/gpfs/projects/upm79/channel_950/RESOLUTION.dat","a");	
 
 	
+
 	for(int j=0;j<NY;j++){
 	fprintf(fp," %f",u_host[j].x);}
 	fprintf(fp," \n");
@@ -535,6 +537,12 @@ void meanURKstep_2(float dt, int in){
 		u_tau*(Fmesh((NY/2+1)*DELTA_Y-1.0f)-Fmesh((NY/2)*DELTA_Y-1.0f))/(nu),u_tau*(Fmesh(1*DELTA_Y-1.0f)-Fmesh(0*DELTA_Y-1.0f))/(nu));
 	fprintf(fp4,"\n");
 	
+	fclose(fp);
+	fclose(fp1);
+	fclose(fp2);
+	fclose(fp3);
+	fclose(fp4);
+	
 
 	}
 	
@@ -544,18 +552,6 @@ void meanURKstep_2(float dt, int in){
 	return;
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

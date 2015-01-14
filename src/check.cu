@@ -8,7 +8,7 @@ void kernelCheck( cudaError_t error, const char* function)
 		if(error !=cudaSuccess)
 		{
 			const char* error_string= cudaGetErrorString(error);
-			printf("\n error  %s : %s \n", function, error_string);
+			printf("\n error  %s : %s RANK=%d \n", function, error_string,RANK);
 			exit(1);
 		}
 
@@ -19,7 +19,7 @@ extern void cufftCheck( cufftResult error, const char* function )
 {
 	if(error != CUFFT_SUCCESS)
 	{
-		printf("\n error  %s : %d \n", function, error);
+		printf("\n error  %s : %d RANK=%d \n", function, error,RANK);
 		exit(1);
 	}
 		
@@ -30,7 +30,7 @@ extern void cusparseCheck( cusparseStatus_t error, const char* function )
 {
 	if(error != CUSPARSE_STATUS_SUCCESS)
 	{
-		printf("\n error  %s : %d \n", function, error);
+		printf("\n error  %s : %d RANK=%d \n", function, error,RANK);
 		exit(1);
 	}
 		
@@ -41,7 +41,7 @@ extern void cublasCheck(cublasStatus_t error, const char* function )
 {
 	if(error !=  CUBLAS_STATUS_SUCCESS)
 	{
-		printf("\n error  %s : %d \n", function, error);
+		printf("\n error  %s : %d RANK=%d \n", function, error,RANK);
 		exit(1);
 	}
 		
@@ -54,7 +54,7 @@ extern void cudaCheck( cudaError_t error, const char* function)
 	if(error !=cudaSuccess)
 	{
 		const char* error_string= cudaGetErrorString(error);
-		printf("\n error  %s : %s \n", function, error_string);
+		printf("\n error  %s : %s RANK=%d \n", function, error_string,RANK);
 		exit(1);
 	}
 		

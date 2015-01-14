@@ -266,6 +266,7 @@ static __global__ void setBoundaryCond(float2* ddu, float2* u,float2* du,double 
 
 		//it does no give v or dv
 
+	/*
 		ddu_kf.x=__double2float_rn(ddu_k.x);
 		ddu_kf.y=__double2float_rn(ddu_k.y);
 
@@ -274,6 +275,16 @@ static __global__ void setBoundaryCond(float2* ddu, float2* u,float2* du,double 
 	
 		u_kf.x=__double2float_rn(u_k.x);
 		u_kf.y=__double2float_rn(u_k.y);
+	*/
+
+		ddu_kf.x=(float)(ddu_k.x);
+		ddu_kf.y=(float)(ddu_k.y);
+
+		du_kf.x=(float)(du_k.x);
+		du_kf.y=(float)(du_k.y);
+	
+		u_kf.x=(float)(u_k.x);
+		u_kf.y=(float)(u_k.y);
 
 		ddu[h]=ddu_kf;
 		du[h]=du_kf;
@@ -313,7 +324,7 @@ extern void bilaplaSolver_double(float2* ddv, float2* v, float2* dv, float betha
 	//Solves (1-0.5*dt*LAP)ddv_w=rhs with ddv(+-1)=0
 	//rhs stored in ddv_w;
 
-	implicitSolver(ddv,betha,dt);
+	implicitSolver_double(ddv,betha,dt);
 	
 	//Copy ddv--->v
 	cudaCheck(cudaMemcpy(v,ddv,SIZE,cudaMemcpyDeviceToDevice),"MemInfo1");
@@ -321,11 +332,11 @@ extern void bilaplaSolver_double(float2* ddv, float2* v, float2* dv, float betha
 	//Solves LAP*v=ddv_w;
 	//Solver hemholzt
 
-	hemholztSolver(v);
+	hemholztSolver_double(v);
 	
 	//Copy ddv--->v
 	cudaCheck(cudaMemcpy(dv,v,SIZE,cudaMemcpyDeviceToDevice),"MemInfo1");
-	deriv_Y_HO(dv);
+	deriv_Y_HO_double(dv);
 
 	//Impose boundary conditions 
 	

@@ -53,9 +53,9 @@ void calcVdV(float2* ddv,float2* v,float2* dv){
 
 
 	cudaCheck(cudaMemcpy(v,ddv,SIZE,cudaMemcpyDeviceToDevice),"MemInfo_RK3_1");
-	hemholztSolver(v);
+	hemholztSolver_double(v);
 	cudaCheck(cudaMemcpy(dv,v,SIZE,cudaMemcpyDeviceToDevice),"MemInfo1_RK3_2");
-	deriv_Y_HO(dv);
+	deriv_Y_HO_double(dv);
 
 
 return;
@@ -89,10 +89,11 @@ static float calcDt(float2* u_x,float2* u_y,float2* u_z,float2* ddv,float2* g){
 	float dt_v=CFL*REYNOLDS/(1.0f/(DELTA_Y*DELTA_Y)+(1.0f/3.0f*NX/LX)*(1.0f/3.0f*NX/LX)+(1.0f/3.0f*NZ/LZ)*(1.0f/3.0f*NZ/LZ));
 	
 	if(RANK==0){
+	printf("*****RK_STATISTICS****");
 	printf("\nmax_V=(%e,%e,%e)",umax[0]/N2,umax[1]/N2,umax[2]/N2);
 	printf("\nmax_(ddV,G)=(%e,%e)",gmax[0],gmax[1]);
 	printf("\n(dt_c,dt_v)=(%f,%f)",dt,dt_v);
-	printf("\n************");		
+	printf("\n");		
 	}
 
 	//Print
@@ -116,11 +117,14 @@ void RKstep(float2* ddv,float2* g,float time){
 	int frec=10;
 
 	//Calc initial simulation
-	
+	dealias(ddv);
+	dealias(g);
+	imposeSymetry(ddv,g);
 	calcVdV(ddv,v,dv);
+	int Nsteps=30000;
 
-	while(time_elapsed<time){
-
+	//while(time_elapsed<time){
+	while(counter<Nsteps){
 
 		for(int n_step=0;n_step<3;n_step++){
 
@@ -133,7 +137,7 @@ void RKstep(float2* ddv,float2* g,float time){
 		}
 
 		//Calc non linear terms stored in R_1 and R_2
-		calcNL(ddv,g,R_ddv,R_g,u,v,w,dv,n_step);
+		calcNL(ddv,g,R_ddv,R_g,u,v,w,dv,n_step,counter);
 
 		//Time step
 		if(n_step==0){
@@ -150,18 +154,23 @@ void RKstep(float2* ddv,float2* g,float time){
 		RKstep_2(ddv_w,g_w,R_ddv,R_g,dt,n_step);	
 
 		//Implicit step in u
-		implicitSolver(g_w,betha[n_step],dt);
-		bilaplaSolver(ddv_w,v,dv,betha[n_step],dt);	
+		implicitSolver_double(g_w,betha[n_step],dt);
+		bilaplaSolver_double(ddv_w,v,dv,betha[n_step],dt);	
 		
 		//Copy to final buffer		
 		cudaCheck(cudaMemcpy(ddv,ddv_w,SIZE,cudaMemcpyDeviceToDevice),"MemInfo_RK3_3");
 		cudaCheck(cudaMemcpy(g,g_w,SIZE,cudaMemcpyDeviceToDevice),"MemInfo_RK3_4");
+		dealias(ddv);dealias(v);
+		dealias(g);dealias(dv);
 		}
 
 
 		if(counter%frec==0){
 		//enstrophyH5(ddv,g,v,dv,ddv_w,g_w,R_ddv,R_g,counter/frec);
 		}
+
+		if(counter%1000==0){
+		imposeSymetry(ddv,g);}
 
 		//Advance
 		dt=dt_2;

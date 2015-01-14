@@ -1,9 +1,9 @@
 
 #include "channel.h"
-/*
+
 ///////////////////KERNELS////////////////////////
 
-static __global__ void calcReynolds(float2* dv,float2* ux,float2* uy)
+static __global__ void calcReynolds(float2* dv,float2* ux,float2* uy,int IGLOBAL)
 {
 	
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -12,13 +12,13 @@ static __global__ void calcReynolds(float2* dv,float2* ux,float2* uy)
 	int j=k%NY;
 	k=(k-j)/NY;
 
-	float N2=NX*(2*NZ-2);
-
 	// [i,k,j][NX,NZ,NY]	
 
 	int h=i*NY*NZ+k*NY+j;
 
-	if (i<NX && j<NY && k<NZ)
+	float N2=(float)NX*(2*NZ-2);
+
+	if (i<NXSIZE && j<NY && k<NZ)
 	{
 	
 
@@ -32,12 +32,12 @@ static __global__ void calcReynolds(float2* dv,float2* ux,float2* uy)
 	u1.y=u1.y/N2;
 
 	
-	u2.x=-u2.x*u1.x;
-	u2.y=-u2.y*u1.y;
+	u2.x=-2.0f*u2.x*u1.x;
+	u2.y=-2.0f*u2.y*u1.y;
 	
-	if(k!=0){
-	u2.x*=2.0f;
-	u2.y*=2.0f;
+	if(k==0){
+	u2.x*=0.5f;
+	u2.y*=0.5f;
 	}
 	
 		
@@ -51,8 +51,9 @@ static __global__ void calcReynolds(float2* dv,float2* ux,float2* uy)
 	
 }
 
-static __global__ void calcRMS(float2* dv,float2* ux)
+static __global__ void calcRMS(float2* dv,float2* ux,int IGLOBAL)
 {
+	
 	
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	int k = blockIdx.y * blockDim.y + threadIdx.y;
@@ -60,13 +61,13 @@ static __global__ void calcRMS(float2* dv,float2* ux)
 	int j=k%NY;
 	k=(k-j)/NY;
 
-	float N2=NX*(2*NZ-2);
-
 	// [i,k,j][NX,NZ,NY]	
 
 	int h=i*NY*NZ+k*NY+j;
 
-	if (i<NX && j<NY && k<NZ)
+	float N2=(float)NX*(2*NZ-2);
+
+	if (i<NXSIZE && j<NY && k<NZ)
 	{
 	
 
@@ -75,12 +76,12 @@ static __global__ void calcRMS(float2* dv,float2* ux)
 	u1.x=u1.x/N2;	
 	u1.y=u1.y/N2;
 
-	u1.x=u1.x*u1.x;
-	u1.y=u1.y*u1.y;
+	u1.x=2.0f*u1.x*u1.x;
+	u1.y=2.0f*u1.y*u1.y;
 	
-	if(k!=0){
-	u1.x*=2.0f;
-	u1.y*=2.0f;
+	if(k==0){
+	u1.x*=0.5f;
+	u1.y*=0.5f;
 	}
 	
 	//Write
@@ -92,6 +93,7 @@ static __global__ void calcRMS(float2* dv,float2* ux)
 	
 }
 
+/*
 static __global__ void calcEnstrophy(float2* wx,float2* wy,float2* wz)
 {
 	
@@ -138,6 +140,8 @@ static __global__ void calcEnstrophy(float2* wx,float2* wy,float2* wz)
 	
 	
 }
+*/
+
 
 /////////////////////Funciones/////////////////////////////////////
 
@@ -146,83 +150,87 @@ static dim3 blocksPerGrid;
 static int threadsPerBlock_in=16;
 static cudaError_t ret;
 
+static FILE* fp1;
+static FILE* fp2;
+static FILE* fp3;
+static FILE* fp4;
 
+float sum[NY];
 
 void calcSt(float2* dv,float2* u,float2* v,float2* w){
 	
-	threadsPerBlock.x=threadsPerBlock_in;
-	threadsPerBlock.y=threadsPerBlock_in;
+	threadsPerBlock.x=THREADSPERBLOCK_IN;
+	threadsPerBlock.y=THREADSPERBLOCK_IN;
 
-	blocksPerGrid.x=NX/threadsPerBlock.x;
+
+	blocksPerGrid.x=NXSIZE/threadsPerBlock.x;
 	blocksPerGrid.y=NZ*NY/threadsPerBlock.y;
+
 
 	int N2=NX*(2*NZ-2);
 
-	static FILE* fp1=fopen("STRESSES.dat","w");
-	static FILE* fp2=fopen("URMS.dat","w");
-	static FILE* fp3=fopen("VRMS.dat","w");
-	static FILE* fp4=fopen("WRMS.dat","w");
+	fp1=fopen("/gpfs/projects/upm79/channel_950/RSTRSS.dat","a");
+	fp2=fopen("/gpfs/projects/upm79/channel_950/URMS.dat","a");
+	fp3=fopen("/gpfs/projects/upm79/channel_950/VRMS.dat","a");
+	fp4=fopen("/gpfs/projects/upm79/channel_950/WRMS.dat","a");
+
 	
-	
-	static float2* aux=(float2*)malloc(NY*sizeof(float2));
 
 	//REYNOLD STRESSES	
+	calcReynolds<<<blocksPerGrid,threadsPerBlock>>>(dv,u,v,IGLOBAL);
+	kernelCheck(ret,"Wkernel");
 
-	calcReynolds<<<blocksPerGrid,threadsPerBlock>>>(dv,u,v);
-	cudaCheck(ret,"Wkernel",1);
+	sumElementsComplex(dv,sum);
 	
-	backwardTranspose(dv);
-	fftForwardTranspose(dv);
-	
-	cudaCheck(cudaMemcpy(aux,dv,NY*sizeof(float2),cudaMemcpyDeviceToHost),"MemInfo1");
 	for(int j=0;j<NY;j++){
-	fprintf(fp1," %f",aux[j].x);}
+	fprintf(fp1," %f",sqrt(sum[j]));}
 	fprintf(fp1," \n");
 
+	
 	//URMS
 
-	calcRMS<<<blocksPerGrid,threadsPerBlock>>>(dv,u);
-	cudaCheck(ret,"Wkernel",1);
+	calcRMS<<<blocksPerGrid,threadsPerBlock>>>(dv,u,IGLOBAL);
+	kernelCheck(ret,"Wkernel");
 	
-	backwardTranspose(dv);
-	fftForwardTranspose(dv);
 
-	cudaCheck(cudaMemcpy(aux,dv,NY*sizeof(float2),cudaMemcpyDeviceToHost),"MemInfo1");
+	sumElementsComplex(dv,sum);
 	for(int j=0;j<NY;j++){
-	fprintf(fp2," %f",sqrt(aux[j].x));}
+	fprintf(fp2," %f",sqrt(sum[j]));}
 	fprintf(fp2," \n");
 	
 	//VRMS
 
-	calcRMS<<<blocksPerGrid,threadsPerBlock>>>(dv,v);
-	cudaCheck(ret,"Wkernel",1);
+	calcRMS<<<blocksPerGrid,threadsPerBlock>>>(dv,v,IGLOBAL);
+	kernelCheck(ret,"Wkernel");
 
-	backwardTranspose(dv);
-	fftForwardTranspose(dv);	
 
-	cudaCheck(cudaMemcpy(aux,dv,NY*sizeof(float2),cudaMemcpyDeviceToHost),"MemInfo1");
+	sumElementsComplex(dv,sum);
 	for(int j=0;j<NY;j++){
-	fprintf(fp3," %f",sqrt(aux[j].x));}
+	fprintf(fp3," %f",sqrt(sum[j]));}
 	fprintf(fp3," \n");
 
 	//WRMS
 
-	calcRMS<<<blocksPerGrid,threadsPerBlock>>>(dv,w);
-	cudaCheck(ret,"Wkernel",1);
-	
-	backwardTranspose(dv);
-	fftForwardTranspose(dv);	
+	calcRMS<<<blocksPerGrid,threadsPerBlock>>>(dv,w,IGLOBAL);
+	kernelCheck(ret,"Wkernel");
 
-	cudaCheck(cudaMemcpy(aux,dv,NY*sizeof(float2),cudaMemcpyDeviceToHost),"MemInfo1");
+	sumElementsComplex(dv,sum);
 	for(int j=0;j<NY;j++){
-	fprintf(fp4," %f",sqrt(aux[j].x));}
+	fprintf(fp4," %f",sqrt(sum[j]));}
 	fprintf(fp4," \n");
 	
+
+	fclose(fp1);
+	fclose(fp2);
+	fclose(fp3);
+	fclose(fp4);	
+
 		
 	return;
 
 }
 
+/*
 void calcSpectra(float2* dv,float2* u,float2* v,float2* w){
 
 	static int counter=0;	

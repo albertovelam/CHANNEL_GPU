@@ -5,10 +5,10 @@ void convolution(float2* ux,float2* uy,float2* uz,float2* wx,float2* wy,float2* 
 
 	// Derivadas respeto de y
 	cudaCheck(cudaMemcpy(wz,ux,SIZE,cudaMemcpyDeviceToDevice),"MemInfo1");
-	deriv_Y_HO(wz);
+	deriv_Y_HO_double(wz);
 	
 	cudaCheck(cudaMemcpy(wx,uz,SIZE,cudaMemcpyDeviceToDevice),"MemInfo1");
-	deriv_Y_HO(wx);	
+	deriv_Y_HO_double(wx);	
 
 	//Read U_tau
 	if(RANK==0){

@@ -6,10 +6,12 @@ void setUp(void){
 
 	fftSetup();
 	setDerivatives_HO();
-	setHemholzt();
-	setImplicit();
+	//setHemholzt();
+	//setImplicit();
 	setRK3();
 
+	setTransposeCudaMpi();
+	
 	setDerivativesDouble();
 	setHemholztDouble();
 	setImplicitDouble();

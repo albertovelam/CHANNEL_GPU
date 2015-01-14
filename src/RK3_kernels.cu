@@ -160,8 +160,8 @@ extern void RKstep_1(float2* ddv,float2* g,float2* ddv_w,float2* g_w,float2* Rdd
 
 	
 	//Derivada segunda YY stored in ddv_w y g_w
-	deriv_YY_HO(ddv_w);
-	deriv_YY_HO(g_w);
+	deriv_YY_HO_double(ddv_w);
+	deriv_YY_HO_double(g_w);
 
 	threadsPerBlock.x= THREADSPERBLOCK_IN;
 	threadsPerBlock.y= THREADSPERBLOCK_IN;

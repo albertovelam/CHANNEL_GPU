@@ -18,8 +18,13 @@ static __global__ void cast_kernel(float2* u,double2* v)
 
 	vd=v[h];
 
+	/*
 	ud.x=__double2float_rn(vd.x);
 	ud.y=__double2float_rn(vd.y);
+	*/
+	
+	ud.x=(float)(vd.x);
+	ud.y=(float)(vd.y);
 
 
 	u[h]=ud;
@@ -200,7 +205,7 @@ static dim3 blocksPerGrid_B;
 
 static cusparseHandle_t hemholzt_handle;
 
-void setHemholztDouble(void){
+extern void setHemholztDouble(void){
 
 	threadsPerBlock.x=NY;
 	threadsPerBlock.y=1;

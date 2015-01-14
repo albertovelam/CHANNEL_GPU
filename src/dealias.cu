@@ -69,6 +69,58 @@ static __global__ void zerokernel(float2* u1)
 	
 }
 
+static __global__ void normalizekernel(float2* u1)
+{
+	
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int k = blockIdx.y * blockDim.y + threadIdx.y;
+
+	int j=k%NY;
+	k=(k-j)/NY;
+
+	// [i,k,j][NX,NZ,NY]	
+
+	int h=i*NY*NZ+k*NY+j;
+
+	if (i<NXSIZE && j<NY && k<NZ)
+	{
+	
+	int N2=NX*(2*NZ-2);		
+
+	u1[h].x/=N2;
+	u1[h].y/=N2;
+
+	
+	}
+	
+	
+}
+
+static __global__ void scalekernel(float2* u,float S,int IGLOBAL)
+{
+	
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int k = blockIdx.y * blockDim.y + threadIdx.y;
+
+	int j=k%NY;
+	k=(k-j)/NY;
+
+	// [i,k,j][NX,NZ,NY]	
+
+	int h=i*NY*NZ+k*NY+j;
+
+	if (i<NXSIZE && j<NY && k<NZ)
+	{
+	
+	u[h].x*=S;
+	u[h].y*=S;
+	
+	
+	}
+	
+	
+}
+
 extern void dealias(float2* u){
 
 		
@@ -90,6 +142,9 @@ return;
 }
 
 
+
+
+
 extern void set2zero(float2* u){
 
 
@@ -102,6 +157,40 @@ extern void set2zero(float2* u){
 
 	
 	zerokernel<<<blocksPerGrid,threadsPerBlock>>>(u);
+	kernelCheck(RET,"Boundary");	
+	
+	return;
+}
+
+extern void normalize(float2* u){
+
+
+	threadsPerBlock.x=THREADSPERBLOCK_IN;
+	threadsPerBlock.y=THREADSPERBLOCK_IN;
+
+
+	blocksPerGrid.x=NXSIZE/threadsPerBlock.x;
+	blocksPerGrid.y=NZ*NY/threadsPerBlock.y;
+
+	
+	normalizekernel<<<blocksPerGrid,threadsPerBlock>>>(u);
+	kernelCheck(RET,"Boundary");	
+	
+	return;
+}
+
+extern void scale(float2* u,float S){
+
+
+	threadsPerBlock.x=THREADSPERBLOCK_IN;
+	threadsPerBlock.y=THREADSPERBLOCK_IN;
+
+
+	blocksPerGrid.x=NXSIZE/threadsPerBlock.x;
+	blocksPerGrid.y=NZ*NY/threadsPerBlock.y;
+
+	
+	scalekernel<<<blocksPerGrid,threadsPerBlock>>>(u,S,IGLOBAL);
 	kernelCheck(RET,"Boundary");	
 	
 	return;

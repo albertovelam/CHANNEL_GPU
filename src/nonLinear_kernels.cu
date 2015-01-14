@@ -225,7 +225,7 @@ extern void calcHvg(float2* nl_x,float2* nl_y,float2* nl_z){
 	calcHvgkernel<<<blocksPerGrid,threadsPerBlock>>>(nl_x,nl_z,IGLOBAL);
 	kernelCheck(RET,"W_kernel");
 
-	deriv_Y_HO(nl_x);
+	deriv_Y_HO_double(nl_x);
 
 	calcHvvkernel<<<blocksPerGrid,threadsPerBlock>>>(nl_x,nl_y,IGLOBAL);
 	kernelCheck(RET,"W_kernel");

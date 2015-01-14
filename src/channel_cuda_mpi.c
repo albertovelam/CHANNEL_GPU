@@ -15,7 +15,7 @@ static int MPIErr;
 void setTransposeCudaMpi(void){
 
 
-	cublasCheck(cublasCreate(&cublasHandle),"Cre");
+	cublasCheck(cublasCreate(&cublasHandle),"Cre_Transpose");
 
 	alpha[0].x=1.0f;
 	alpha[0].y=0.0f;
@@ -30,7 +30,7 @@ void setTransposeCudaMpi(void){
 
 //Transpose [Ny,Nx] a [Nx,Ny]
 
-static void transpose(float2* u_2,const float2* u_1,int Nx,int Ny){
+void transpose(float2* u_2,const float2* u_1,int Nx,int Ny){
 
 	//Transpuesta de [i,k,j][NX,NZ,NY] a -----> [j,i,k][NY,NX,NZ]
 
@@ -43,7 +43,7 @@ static void transpose(float2* u_2,const float2* u_1,int Nx,int Ny){
 
 //Transpose [Ny,Nx] a [Nx,Ny]
 
-static void transposeBatched(float2* u_2,const float2* u_1,int Nx,int Ny,int batch){
+void transposeBatched(float2* u_2,const float2* u_1,int Nx,int Ny,int batch){
 
 	//Transpuesta de [i,k,j][NX,NZ,NY] a -----> [j,i,k][NY,NX,NZ]
 
