@@ -19,6 +19,8 @@ int main(int argc, char** argv)
   float2* g;
   domain_t domain = {0, 0, 0, 0, 0, 0};
   char *ginput, *goutput, *ddvinput, *ddvoutput;
+  config_t config;
+  paths_t path;
   
   MPI_Init(&argc, &argv);	
   H5open();
@@ -29,18 +31,11 @@ int main(int argc, char** argv)
 
   // Initial configuration
   if(rank == 0){
-    config_t config = read_config_file("run.conf");
+    config = read_config_file("run.conf");
     printf("Reading configuration\n");
     read_domain_from_config(&domain,&config);
     printf("Reading input file names\n");
-    ginput = (char *) config_setting_get_string(config_lookup(&config, "application.input.G"));
-    printf("Input G file: %s\n",ginput);
-    goutput = (char *) config_setting_get_string(config_lookup(&config, "application.output.G"));
-    printf("Output G file: %s\n",goutput);
-    ddvinput = (char *) config_setting_get_string(config_lookup(&config, "application.input.DDV"));
-    printf("Input DDV file: %s\n",ddvinput);
-    ddvoutput = (char *) config_setting_get_string(config_lookup(&config, "application.output.DDV"));
-    printf("Output DDV file: %s\n\n",ddvoutput);
+    read_filenames_from_config(&path,&config);
   }
   
   MPI_Bcast(&(domain.nx), 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -105,13 +100,13 @@ int main(int argc, char** argv)
   //Read data
   if(rank == 0) printf("Reading Data...\n");
 
-  readData(ddv,g,ddvinput,ginput,domain);
+  readData(ddv,g,path,domain);
   //scale(ddv,10.0f);scale(g,10.0f);
   //genRandData(ddv,g,(float)(NX*NZ));
 
   
   if(rank == 0){
-    readU();
+    readU(path.umeaninput);
   }
   
   /*
@@ -124,14 +119,14 @@ int main(int argc, char** argv)
     printf("Starting RK iterations...\n");
   }
 
-  RKstep(ddv,g,1,domain);
+  RKstep(ddv,g,1,domain,path);
   
   //Write data
   
-  writeData(ddv,g,ddvoutput,goutput,domain);
+  writeData(ddv,g,path,domain);
   
   if(rank==0){
-    writeU();
+    writeU(path.umeanoutput);
     //config_destroy(&config);
   }
 

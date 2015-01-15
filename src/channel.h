@@ -29,6 +29,16 @@ typedef struct domain_t{
   int iglobal;
 } domain_t;
 
+typedef struct paths_t{
+  char ginput[100];
+  char goutput[100];
+  char ddvinput[100];
+  char ddvoutput[100];
+  char umeaninput[100];
+  char umeanoutput[100];
+  char path[100];
+} paths_t;
+
 #if !defined(NX) || !defined(NY) || !defined(NZ)
 #error "Sizes have to be defined at compile time"
 #endif
@@ -92,6 +102,7 @@ extern double2* AUX;
 
 config_t read_config_file(char* name);
 void read_domain_from_config(domain_t*, config_t*);
+void read_filenames_from_config(paths_t*, config_t*);
 void setUp(domain_t domain);
 
 //fft
@@ -113,13 +124,14 @@ void sumElementsComplex(float2* buffer_1,float* out, domain_t domain);
 
 //Rk
 
-void RKstep(float2* ddv,float2* g,float time, domain_t domain);
+void RKstep(float2* ddv,float2* g,float time, domain_t domain, paths_t path);
 void setRK3(domain_t domain);
 
 //Non linear
 void calcNL(float2* ddv,float2* g,float2* R_ddv,float2* R_g,
 	    float2* u,float2* v,float2* w,
-	    float2* dv,int ii,int counter, domain_t domain);
+	    float2* dv,int ii,int counter, domain_t domain,
+	    paths_t path);
 
 //Mean velocity profile
 
@@ -130,11 +142,11 @@ void writeUmean(float2* u, domain_t domain);
 void readUmean(float2* u);
 void readUtau(float2* wz, domain_t domain);	
 
-void writeU();
-void readU();
+void writeU(char*);
+void readU(char*);
 
 void meanURKstep_1(int in);
-void meanURKstep_2(float dt, int in);
+void meanURKstep_2(float dt, int in, paths_t path);
 
 void writeUmeanT(float2* u_r);
 
@@ -168,8 +180,8 @@ void convolution(float2* ux,float2* uy,float2* uz,float2* wx,float2* wy,float2* 
 
 //io
 
-void readData(float2* ddv,float2* g, char* ddvinput, char* ginput, domain_t domain);
-void writeData(float2* ddv,float2* g, char* ddvoutput, char* goutput, domain_t domain);
+void readData(float2* ddv,float2* g, paths_t path, domain_t domain);
+void writeData(float2* ddv,float2* g, paths_t path, domain_t domain);
 void genRandData(float2* ddv,float2* g,float F, domain_t domain);
 
 //CUDA local transpose
@@ -181,7 +193,7 @@ void transposeBatched(float2* u_2,const float2* u_1,int Nx,int Ny,int batch, dom
 void transpose(float2* u_2,const float2* u_1,int Nx,int Ny, domain_t domain);
 
 //Statistics
-void calcSt(float2* dv,float2* u,float2* v,float2* w, domain_t domain);
+void calcSt(float2* dv,float2* u,float2* v,float2* w, domain_t domain, paths_t path);
 
 
 //Routine check

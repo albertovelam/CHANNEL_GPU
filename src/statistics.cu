@@ -1,5 +1,6 @@
 
 #include "channel.h"
+#include <string.h>
 
 ///////////////////KERNELS////////////////////////
 
@@ -157,8 +158,8 @@ static FILE* fp4;
 
 float sum[NY];
 
-void calcSt(float2* dv,float2* u,float2* v,float2* w, domain_t domain){
-	
+void calcSt(float2* dv,float2* u,float2* v,float2* w, domain_t domain, paths_t path){
+  char dummy[100];
   threadsPerBlock.x=THREADSPERBLOCK_IN;
   threadsPerBlock.y=THREADSPERBLOCK_IN;
 
@@ -169,14 +170,25 @@ void calcSt(float2* dv,float2* u,float2* v,float2* w, domain_t domain){
 
   int N2=NX*(2*NZ-2);
 
-  fp1=fopen("/drive1/guillem/Channel/RSTRSS.dat","a");
-  fp2=fopen("/drive1/guillem/Channel/URMS.dat","a");
-  fp3=fopen("/drive1/guillem/Channel/VRMS.dat","a");
-  fp4=fopen("/drive1/guillem/Channel/WRMS.dat","a");
+  strcpy(dummy,path.path);
+  strcat(dummy,"RSTRSS.dat");
+  fp1=fopen(dummy,"a");
+  
+  strcpy(dummy,path.path);
+  strcat(dummy,"URMS.dat");
+  fp2=fopen(dummy,"a");
+  
+  strcpy(dummy,path.path);
+  strcat(dummy,"VRMS.dat");
+  fp3=fopen(dummy,"a");
+  
+  strcpy(dummy,path.path);
+  strcat(dummy,"WRMS.dat");
+  fp4=fopen(dummy,"a");
 
-	
 
-  //REYNOLD STRESSES	
+
+  //REYNOLD STRESSES
   calcReynolds<<<blocksPerGrid,threadsPerBlock>>>(dv,u,v,domain);
   kernelCheck(ret,domain,"Wkernel");
 
@@ -223,7 +235,7 @@ void calcSt(float2* dv,float2* u,float2* v,float2* w, domain_t domain){
   fclose(fp1);
   fclose(fp2);
   fclose(fp3);
-  fclose(fp4);	
+  fclose(fp4);
 
 		
   return;

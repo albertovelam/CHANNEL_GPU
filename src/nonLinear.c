@@ -2,13 +2,14 @@
 
 void calcNL(float2* ddv,float2* g,float2* R_ddv,float2* R_g,
 	    float2* u,float2* v,float2* w,
-	    float2* dv,int ii,int counter, domain_t domain){
-
+	    float2* dv,int ii,int counter, domain_t domain,
+	    paths_t path){
+  
   //Calculate (wy,d_y v)---> u_x, u_z
   calcUW(u,w,dv,g,domain);	
   
-  if(ii==0 & counter%FREC_STATS==0){
-    calcSt(dv,u,v,w,domain);
+  if(ii==0 && counter%FREC_STATS==0){
+    calcSt(dv,u,v,w,domain,path);
     //calcSpectra(dv,u,v,w);
   }
   

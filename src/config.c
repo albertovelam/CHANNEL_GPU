@@ -22,3 +22,21 @@ void read_domain_from_config(domain_t *domain,config_t *config){
   return;
 }
 
+void read_filenames_from_config(paths_t *path, config_t *config){
+  const char *dummy;
+  config_lookup_string(config, "application.input.G",&dummy);
+  strcpy(path->ginput,dummy);
+  config_lookup_string(config, "application.output.G",&dummy);
+  strcpy(path->goutput,dummy);
+  config_lookup_string(config, "application.input.DDV",&dummy);
+  strcpy(path->ddvinput,dummy);
+  config_lookup_string(config, "application.output.DDV",&dummy);
+  strcpy(path->ddvoutput,dummy);
+  config_lookup_string(config, "application.input.UMEAN",&dummy);
+  strcpy(path->umeaninput,dummy);
+  config_lookup_string(config, "application.output.UMEAN",&dummy);
+  strcpy(path->umeanoutput,dummy);
+  config_lookup_string(config, "application.path",&dummy);
+  strcpy(path->path,dummy);
+  return;
+}

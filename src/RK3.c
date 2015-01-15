@@ -108,7 +108,7 @@ static float calcDt(float2* u_x,float2* u_y,float2* u_z,float2* ddv,float2* g, d
   
 }
 
-void RKstep(float2* ddv,float2* g,float time, domain_t domain){
+void RKstep(float2* ddv,float2* g,float time, domain_t domain, paths_t path){
   
   static float time_elapsed=0.0f;
   float dt=0;
@@ -137,7 +137,7 @@ void RKstep(float2* ddv,float2* g,float time, domain_t domain){
       }
       
       //Calc non linear terms stored in R_1 and R_2
-      calcNL(ddv,g,R_ddv,R_g,u,v,w,dv,n_step,counter,domain);
+      calcNL(ddv,g,R_ddv,R_g,u,v,w,dv,n_step,counter,domain,path);
       
       //Time step
       if(n_step==0){
@@ -147,7 +147,7 @@ void RKstep(float2* ddv,float2* g,float time, domain_t domain){
       
       //Second step
       if(domain.rank==0){
-	meanURKstep_2(dt,n_step);
+	meanURKstep_2(dt,n_step,path);
       }
       
       //Second step
