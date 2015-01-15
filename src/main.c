@@ -1,4 +1,5 @@
 #include "channel.h"
+
 //Buffer for derivatives
 
 double2* LDIAG;
@@ -17,6 +18,7 @@ int main(int argc, char** argv)
   float2* ddv;
   float2* g;
   domain_t domain = {0, 0, 0, 0, 0, 0};
+  char *ginput, *goutput, *ddvinput, *ddvoutput;
   
   MPI_Init(&argc, &argv);	
   H5open();
@@ -27,9 +29,20 @@ int main(int argc, char** argv)
 
   // Initial configuration
   if(rank == 0){
-    read_domain_from_config(&domain);
+    config_t config = read_config_file("run.conf");
+    printf("Reading configuration\n");
+    read_domain_from_config(&domain,&config);
+    printf("Reading input file names\n");
+    ginput = (char *) config_setting_get_string(config_lookup(&config, "application.input.G"));
+    printf("Input G file: %s\n",ginput);
+    goutput = (char *) config_setting_get_string(config_lookup(&config, "application.output.G"));
+    printf("Output G file: %s\n",goutput);
+    ddvinput = (char *) config_setting_get_string(config_lookup(&config, "application.input.DDV"));
+    printf("Input DDV file: %s\n",ddvinput);
+    ddvoutput = (char *) config_setting_get_string(config_lookup(&config, "application.output.DDV"));
+    printf("Output DDV file: %s\n\n",ddvoutput);
   }
-
+  
   MPI_Bcast(&(domain.nx), 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&(domain.ny), 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&(domain.nz), 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -37,12 +50,12 @@ int main(int argc, char** argv)
   domain.rank = rank;
   domain.size = size;
   domain.iglobal = domain.nx * domain.rank / domain.size;
-
-
+  
   for (i=0; i<domain.size; i++){
     if (i == domain.rank){
       if (i == 0) printf("rank, size, iglobal, nx, ny ,nz\n");
       if (i == 0) printf("===============================\n");
+      MPI_Barrier(MPI_COMM_WORLD);
       printf("%d, %d, %d, %d, %d, %d\n",
 	     domain.rank, domain.size, domain.iglobal,
 	     domain.nx, domain.ny, domain.nz);
@@ -92,7 +105,7 @@ int main(int argc, char** argv)
   //Read data
   if(rank == 0) printf("Reading Data...\n");
 
-  readData(ddv,g,domain);
+  readData(ddv,g,ddvinput,ginput,domain);
   //scale(ddv,10.0f);scale(g,10.0f);
   //genRandData(ddv,g,(float)(NX*NZ));
 
@@ -115,12 +128,13 @@ int main(int argc, char** argv)
   
   //Write data
   
-  writeData(ddv,g,domain);
+  writeData(ddv,g,ddvoutput,goutput,domain);
   
   if(rank==0){
     writeU();
+    //config_destroy(&config);
   }
-  
+
   H5close();
   MPI_Finalize();
   
@@ -128,22 +142,4 @@ int main(int argc, char** argv)
 }
 
 
-void read_domain_from_config(domain_t *domain){
-  config_t config;
-  int dummy;
-  config_init(&config);
 
-  if ( !config_read_file(&config, "run.conf")){
-    fprintf(stderr,  "%s:%d - %s\n", config_error_file(&config),
-	    config_error_line(&config), config_error_text(&config));
-    config_destroy(&config);
-    exit(1);
-  }
-
-  config_lookup_int(&config, "application.NX", &(*domain).nx);
-  config_lookup_int(&config, "application.NY", &(*domain).ny);
-  config_lookup_int(&config, "application.NZ", &(*domain).nz);
-  
-  config_destroy(&config);
-  return;
-}

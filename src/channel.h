@@ -36,6 +36,7 @@ typedef struct domain_t{
 //Dimensions in Y direction 
 // h=1.0f channel height 2.0f
 
+// TODO: make that configurable too.
 const float LY=2.0f;
 const float DELTA_Y=2.0f/(NY-1);
 
@@ -89,7 +90,8 @@ extern double2* AUX;
 
 //Set up
 
-void read_domain_from_config(domain_t*);
+config_t read_config_file(char* name);
+void read_domain_from_config(domain_t*, config_t*);
 void setUp(domain_t domain);
 
 //fft
@@ -166,8 +168,8 @@ void convolution(float2* ux,float2* uy,float2* uz,float2* wx,float2* wy,float2* 
 
 //io
 
-void readData(float2* ddv,float2* g, domain_t domain);
-void writeData(float2* ddv,float2* g, domain_t domain);
+void readData(float2* ddv,float2* g, char* ddvinput, char* ginput, domain_t domain);
+void writeData(float2* ddv,float2* g, char* ddvoutput, char* goutput, domain_t domain);
 void genRandData(float2* ddv,float2* g,float F, domain_t domain);
 
 //CUDA local transpose

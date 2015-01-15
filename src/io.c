@@ -1,12 +1,12 @@
 #include "channel.h"
 
-void readData(float2* ddv, float2* g, domain_t domain){
+void readData(float2* ddv, float2* g, char *ddvfile, char *gfile, domain_t domain){
 
   float* host_buffer=(float*)malloc(SIZE);
   
   //read u
   
-  mpiCheck(read_parallel_float("/drive1/guillem/Channel/G.h5",
+  mpiCheck(read_parallel_float(gfile,
 			       (float *)host_buffer,
 			       domain.nx,
 			       domain.ny,
@@ -15,7 +15,7 @@ void readData(float2* ddv, float2* g, domain_t domain){
 			       domain.size),"read");	
   cudaCheck(cudaMemcpy(g,host_buffer,SIZE,cudaMemcpyHostToDevice),domain,"MemInfo_uy");
 	
-  mpiCheck(read_parallel_float("/drive1/guillem/Channel/ddV.h5",
+  mpiCheck(read_parallel_float(ddvfile,
 			       (float *)host_buffer,
 			       domain.nx,
 			       domain.ny,
@@ -33,7 +33,7 @@ void readData(float2* ddv, float2* g, domain_t domain){
 }
 
 
-void writeData(float2* ddv,float2* g, domain_t domain){
+void writeData(float2* ddv,float2* g, char *ddvfile, char* gfile, domain_t domain){
   
   float* host_buffer=(float*)malloc(SIZE);
   
@@ -44,7 +44,7 @@ void writeData(float2* ddv,float2* g, domain_t domain){
 		       g,
 		       SIZE,
 		       cudaMemcpyDeviceToHost),domain,"MemInfo_uy");
-  mpiCheck(wrte_parallel_float("/drive1/guillem/Channel/G.01.h5",
+  mpiCheck(wrte_parallel_float(gfile,
 			       (float *)host_buffer,
 			       domain.nx,
 			       domain.ny,
@@ -56,7 +56,7 @@ void writeData(float2* ddv,float2* g, domain_t domain){
 		       ddv,
 		       SIZE,
 		       cudaMemcpyDeviceToHost),domain,"MemInfo_uy");
-  mpiCheck(wrte_parallel_float("/drive1/guillem/Channel/ddV.01.h5",
+  mpiCheck(wrte_parallel_float(ddvfile,
 			       (float *)host_buffer,
 			       domain.nx,
 			       domain.ny,
