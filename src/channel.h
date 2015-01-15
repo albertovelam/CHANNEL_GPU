@@ -58,7 +58,6 @@ static const int THREADSPERBLOCK_IN=16;
 //MPI number of process
 
 const int MPISIZE=2;
-
 const int NXSIZE=NX/MPISIZE;
 const int NYSIZE=NY/MPISIZE;
 
@@ -149,13 +148,13 @@ int chyzx2xyz(double *y, double *x, int Nx, int Ny, int Nz,
 	      int rank, int size);
 int chxyz2yzx(double *x, double *y, int Nx, int Ny, int Nz,
 	      int rank, int size);
-int read_parallel_float(char *filename, float *x, int NX, int NY, int NZ,
+int read_parallel_float(char *filename, float *x, int Nx, int Ny, int Nz,
 			 int rank, int size);
-int wrte_parallel_float(char *filename, float *x, int NX, int NY, int NZ,
+int wrte_parallel_float(char *filename, float *x, int Nx, int Ny, int Nz,
 			 int rank, int size);
-int read_parallel_double(char *filename, double *x, int NX, int NY, int NZ,
+int read_parallel_double(char *filename, double *x, int Nx, int Ny, int Nz,
 			 int rank, int size);
-int wrte_parallel_double(char *filename, double *x, int NX, int NY, int NZ,
+int wrte_parallel_double(char *filename, double *x, int Nx, int Ny, int Nz,
 			 int rank, int size);
 
 //ImposeSymetry

@@ -254,7 +254,7 @@ int read_parallel_double(char *filename, double *x, int Nx, int Ny, int Nz,
   return MPIErr;
 }
 
-int wrte_parallel_float(char *filename, float *x, int NX, int NY, int NZ,
+int wrte_parallel_float(char *filename, float *x, int Nx, int Ny, int Nz,
 			 int rank, int size){
   int i,j,k;
   int MPIErr;
@@ -263,28 +263,28 @@ int wrte_parallel_float(char *filename, float *x, int NX, int NY, int NZ,
   hsize_t sizem[3], sized[3], start[3], stride[3], count[3];
   float *aux;
   
-  int myNX = NX/size;
+  int myNx = Nx/size;
 
-  aux = (float *) malloc(NY*NZ*sizeof(float));
+  aux = (float *) malloc(Ny*Nz*sizeof(float));
 
   if (rank == 0){
     fileid = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
     start[0] = 0; start[1] = 0; start[2] = 0;
-    sized[0] = NX; sized[1] = NY; sized[2] = NZ;
-    sizem[0] = 1; sizem[1] = NY; sizem[2] = NZ;
-    stride[0] = 1; stride[1] = NY; stride[2] = NZ;
+    sized[0] = Nx; sized[1] = Ny; sized[2] = Nz;
+    sizem[0] = 1; sizem[1] = Ny; sizem[2] = Nz;
+    stride[0] = 1; stride[1] = Ny; stride[2] = Nz;
     count[0] = 1; count[1] = 1; count[2] = 1;
     dspaceid = H5Screate_simple(3,sized,sized);
     dsetid = H5Dcreate(fileid, "u", H5T_NATIVE_FLOAT, dspaceid,
   		       H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   }
   
-  for (i=0; i<NX; i++){
-    if (i/myNX == 0){
+  for (i=0; i<Nx; i++){
+    if (i/myNx == 0){
       if (rank == 0){
-	for (j=0; j<NY; j++){
-	  for (k=0; k<NZ; k++){
-	    aux[j*NZ + k] = x[(i%myNX)*NY*NZ + j*NZ + k];
+	for (j=0; j<Ny; j++){
+	  for (k=0; k<Nz; k++){
+	    aux[j*Nz + k] = x[(i%myNx)*Ny*Nz + j*Nz + k];
 	  }
 	}
 	mspaceid = H5Screate_simple(3,sizem,sizem);
@@ -300,17 +300,17 @@ int wrte_parallel_float(char *filename, float *x, int NX, int NY, int NZ,
       }
     }
     else{
-      if (i/myNX == rank){
-	for (j=0; j<NY; j++){
-	  for (k=0; k<NZ; k++){
-	    aux[j*NZ + k] = x[(i%myNX)*NY*NZ + j*NZ + k];
+      if (i/myNx == rank){
+	for (j=0; j<Ny; j++){
+	  for (k=0; k<Nz; k++){
+	    aux[j*Nz + k] = x[(i%myNx)*Ny*Nz + j*Nz + k];
 	  }
 	}
-	MPIErr = MPI_Send(aux,NY*NZ,MPI_FLOAT,0,11,MPI_COMM_WORLD); 
+	MPIErr = MPI_Send(aux,Ny*Nz,MPI_FLOAT,0,11,MPI_COMM_WORLD); 
       }
       
       else if (rank == 0){
-	MPIErr = MPI_Recv(aux,NY*NZ,MPI_FLOAT,i/myNX,11,MPI_COMM_WORLD,
+	MPIErr = MPI_Recv(aux,Ny*Nz,MPI_FLOAT,i/myNx,11,MPI_COMM_WORLD,
 			  MPI_STATUS_IGNORE);
 	mspaceid = H5Screate_simple(3,sizem,sizem);
 	start[0] = 0;
@@ -338,7 +338,7 @@ int wrte_parallel_float(char *filename, float *x, int NX, int NY, int NZ,
   return MPIErr;
 }
 
-int read_parallel_float(char *filename, float *x, int NX, int NY, int NZ,
+int read_parallel_float(char *filename, float *x, int Nx, int Ny, int Nz,
 			 int rank, int size){
   int i,j,k;
   int MPIErr;
@@ -347,23 +347,23 @@ int read_parallel_float(char *filename, float *x, int NX, int NY, int NZ,
   hsize_t sizem[3], sized[3], start[3], stride[3], count[3];
   float *aux;
   
-  int myNX = NX/size;
+  int myNx = Nx/size;
 
-  aux = (float *) malloc(NY*NZ*sizeof(float));
+  aux = (float *) malloc(Ny*Nz*sizeof(float));
 
   if (rank == 0){
     fileid = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
     start[0] = 0; start[1] = 0; start[2] = 0;
-    sized[0] = NX; sized[1] = NY; sized[2] = NZ;
-    sizem[0] = 1; sizem[1] = NY; sizem[2] = NZ;
-    stride[0] = 1; stride[1] = NY; stride[2] = NZ;
+    sized[0] = Nx; sized[1] = Ny; sized[2] = Nz;
+    sizem[0] = 1; sizem[1] = Ny; sizem[2] = Nz;
+    stride[0] = 1; stride[1] = Ny; stride[2] = Nz;
     count[0] = 1; count[1] = 1; count[2] = 1;
     dsetid = H5Dopen(fileid, "u", H5P_DEFAULT);
     dspaceid = H5Dget_space(dsetid);
   }
   
-  for (i=0; i<NX; i++){
-    if (i/myNX == 0){
+  for (i=0; i<Nx; i++){
+    if (i/myNx == 0){
       if (rank == 0){
 	mspaceid = H5Screate_simple(3,sizem,sizem);
 	start[0] = 0;
@@ -375,20 +375,20 @@ int read_parallel_float(char *filename, float *x, int NX, int NY, int NZ,
 	H5Err = H5Dread(dsetid,H5T_NATIVE_FLOAT,mspaceid,dspaceid,
 			H5P_DEFAULT,aux);
 	H5Err = H5Sclose(mspaceid);
-	for (j=0; j<NY; j++){
-	  for (k=0; k<NZ; k++){
-	    x[(i%myNX)*NY*NZ + j*NZ + k] = aux[j*NZ + k];
+	for (j=0; j<Ny; j++){
+	  for (k=0; k<Nz; k++){
+	    x[(i%myNx)*Ny*Nz + j*Nz + k] = aux[j*Nz + k];
 	  }
 	}
       }
     }
     else{
-      if (i/myNX == rank){
-	MPIErr = MPI_Recv(aux,NY*NZ,MPI_FLOAT,0,11,MPI_COMM_WORLD,
+      if (i/myNx == rank){
+	MPIErr = MPI_Recv(aux,Ny*Nz,MPI_FLOAT,0,11,MPI_COMM_WORLD,
 			  MPI_STATUS_IGNORE); 
-	for (j=0; j<NY; j++){
-	  for (k=0; k<NZ; k++){
-	    x[(i%myNX)*NY*NZ + j*NZ + k] = aux[j*NZ + k];
+	for (j=0; j<Ny; j++){
+	  for (k=0; k<Nz; k++){
+	    x[(i%myNx)*Ny*Nz + j*Nz + k] = aux[j*Nz + k];
 	  }
 	}
       }
@@ -404,7 +404,7 @@ int read_parallel_float(char *filename, float *x, int NX, int NY, int NZ,
 	H5Err = H5Dread(dsetid,H5T_NATIVE_FLOAT,mspaceid,dspaceid,
 			H5P_DEFAULT,aux);
 	H5Err = H5Sclose(mspaceid);
-	MPIErr = MPI_Send(aux,NY*NZ,MPI_FLOAT,i/myNX,11,MPI_COMM_WORLD);
+	MPIErr = MPI_Send(aux,Ny*Nz,MPI_FLOAT,i/myNx,11,MPI_COMM_WORLD);
       }
     }
     MPIErr = MPI_Barrier(MPI_COMM_WORLD);
