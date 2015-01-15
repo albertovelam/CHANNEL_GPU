@@ -1,6 +1,6 @@
 #include"channel.h"
 
-static __global__ void cast_kernel(float2* u,double2* v)
+static __global__ void cast_kernel(float2* u,double2* v,domain_t domain)
 {
 
   int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -33,7 +33,7 @@ static __global__ void cast_kernel(float2* u,double2* v)
 }
 
 
-static __global__ void rhs_A_kernel(double2* v,float2* u)
+static __global__ void rhs_A_kernel(double2* v,float2* u,domain_t domain)
 {  
 
   //Define shared memory
@@ -95,7 +95,7 @@ static __global__ void rhs_A_kernel(double2* v,float2* u)
 
 }
 
-static __global__ void setDiagkernel(double2* ldiag,double2* cdiag,double2* udiag,float bethaDt,int nstep,int IGLOBAL){  
+static __global__ void setDiagkernel(double2* ldiag,double2* cdiag,double2* udiag,float bethaDt,int nstep,domain_t domain){  
 
 		
   int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -232,14 +232,14 @@ extern void implicitSolver_double(float2* u,float betha,float dt, domain_t domai
 
   for(int i=0;i<NSTEPS;i++){
 
-    setDiagkernel<<<blocksPerGrid_B,threadsPerBlock_B>>>(LDIAG,CDIAG,UDIAG,dt*betha,i,domain.iglobal);
+    setDiagkernel<<<blocksPerGrid_B,threadsPerBlock_B>>>(LDIAG,CDIAG,UDIAG,dt*betha,i,domain);
 
-    rhs_A_kernel<<<blocksPerGrid,threadsPerBlock>>>(AUX,u+i*NXSIZE/NSTEPS*NZ*NY);
+    rhs_A_kernel<<<blocksPerGrid,threadsPerBlock>>>(AUX,u+i*NXSIZE/NSTEPS*NZ*NY,domain);
     kernelCheck(RET,domain,"hemholz");	
 
     cusparseCheck(cusparseZgtsvStridedBatch(implicit_handle,NY,LDIAG,CDIAG,UDIAG,AUX,NXSIZE/NSTEPS*NZ,NY),domain,"HEM");
 
-    cast_kernel<<<blocksPerGrid_B,threadsPerBlock_B>>>(u+i*NXSIZE/NSTEPS*NZ*NY,AUX);
+    cast_kernel<<<blocksPerGrid_B,threadsPerBlock_B>>>(u+i*NXSIZE/NSTEPS*NZ*NY,AUX,domain);
 
   }
   return;

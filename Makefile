@@ -5,6 +5,10 @@ LIBS = -lcusparse -lcudart -lcufft -lcublas -lcuda  -lstdc++ -lm -lhdf5  -lhdf5 
 PATHS = -L/opt/cuda/lib64/ -L/usr/lib64 -L/usr/lib
 INCLUDES = -I/opt/cuda/include
 DEBUG = -g
+NX:= $(shell python stripsizes.py NX)
+NY:= $(shell python stripsizes.py NY)
+NZ:= $(shell python stripsizes.py NZ)
+SIZE = -DNX=${NX} -DNY=${NY} -DNZ=${NZ}
 GPU_SOURCES = $(wildcard src/*.cu)
 CPU_SOURCES = $(wildcard src/*.c)
 GPU_OBJECTS = $(GPU_SOURCES:.cu=.o)

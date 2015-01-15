@@ -1,7 +1,7 @@
 #include"channel.h"
 
 
-static __global__ void cast_kernel(float2* u,double2* v)
+static __global__ void cast_kernel(float2* u,double2* v,domain_t domain)
 {
 
   int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -29,7 +29,7 @@ static __global__ void cast_kernel(float2* u,double2* v)
 
 }
 
-static __global__ void deriv_Y_kernel(double2* v,float2* u)
+static __global__ void deriv_Y_kernel(double2* v,float2* u, domain_t domain)
 
 {  
 	
@@ -120,7 +120,7 @@ static __global__ void deriv_Y_kernel(double2* v,float2* u)
 }
 
 
-__global__ void deriv_YY_kernel(double2* v,float2* u)
+__global__ void deriv_YY_kernel(double2* v,float2* u,domain_t domain)
 
 {  
 	
@@ -206,7 +206,7 @@ __global__ void deriv_YY_kernel(double2* v,float2* u)
 
 }
 
-static __global__ void setDiagkernel_Y(double2* ldiag,double2* cdiag,double2* udiag){  
+static __global__ void setDiagkernel_Y(double2* ldiag,double2* cdiag,double2* udiag, domain_t domain){  
 
 	
   int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -286,7 +286,7 @@ static __global__ void setDiagkernel_Y(double2* ldiag,double2* cdiag,double2* ud
 
 }
 
-static __global__ void setDiagkernel_YY(double2* ldiag,double2* cdiag,double2* udiag){  
+static __global__ void setDiagkernel_YY(double2* ldiag,double2* cdiag,double2* udiag, domain_t domain){  
 
 	
   int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -400,9 +400,9 @@ extern void deriv_Y_HO_double(float2* u, domain_t domain){
 
   for(int i=0;i<NSTEPS;i++){
 	
-    setDiagkernel_Y<<<blocksPerGrid_B,threadsPerBlock_B>>>(LDIAG,CDIAG,UDIAG);
+    setDiagkernel_Y<<<blocksPerGrid_B,threadsPerBlock_B>>>(LDIAG,CDIAG,UDIAG,domain);
 
-    deriv_Y_kernel<<<blocksPerGrid,threadsPerBlock>>>(AUX,u+i*NXSIZE/NSTEPS*NZ*NY);
+    deriv_Y_kernel<<<blocksPerGrid,threadsPerBlock>>>(AUX,u+i*NXSIZE/NSTEPS*NZ*NY,domain);
     kernelCheck(RET,domain,"W_kernel");	
 
     //Requires extra storage size=( 8×(3+NX*NZ)×sizeof(<type>))
@@ -411,7 +411,7 @@ extern void deriv_Y_HO_double(float2* u, domain_t domain){
 		  domain,
 		  "HEM");
 
-    cast_kernel<<<blocksPerGrid_B,threadsPerBlock_B>>>(u+i*NXSIZE/NSTEPS*NZ*NY,AUX);
+    cast_kernel<<<blocksPerGrid_B,threadsPerBlock_B>>>(u+i*NXSIZE/NSTEPS*NZ*NY,AUX,domain);
 
   }
 

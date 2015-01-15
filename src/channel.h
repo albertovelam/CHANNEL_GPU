@@ -29,9 +29,9 @@ typedef struct domain_t{
   int iglobal;
 } domain_t;
 
-const int NX=128;
-const int NY=128;
-const int NZ=128/2+1;
+#if !defined(NX) || !defined(NY) || !defined(NZ)
+#error "Sizes have to be defined at compile time"
+#endif
 
 //Dimensions in Y direction 
 // h=1.0f channel height 2.0f
@@ -57,15 +57,15 @@ static const int THREADSPERBLOCK_IN=16;
 
 //MPI number of process
 
-const int MPISIZE=2;
-const int NXSIZE=NX/MPISIZE;
-const int NYSIZE=NY/MPISIZE;
+#define MPISIZE domain.size
+#define NXSIZE NX/MPISIZE
+#define NYSIZE NY/MPISIZE
 
-extern int RANK;
-extern int IGLOBAL;
+#define RANK domain.rank
+#define IGLOBAL domain.iglobal
 
 //size local
-const int SIZE=NXSIZE*NY*NZ*sizeof(float2);
+#define SIZE NXSIZE*NY*NZ*sizeof(float2)
 
 //Statistics
 const int FREC_STATS=10;
@@ -79,8 +79,8 @@ extern double2* CDIAG;
 extern double2* AUX;
 
 
-const int NSTEPS=4;
-const int SIZE_AUX=2*SIZE/NSTEPS;
+#define NSTEPS 4
+#define SIZE_AUX 2*SIZE/NSTEPS
 
 //CUSPARSE HANDELS
 

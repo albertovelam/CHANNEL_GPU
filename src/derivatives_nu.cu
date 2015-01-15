@@ -6,180 +6,173 @@ static dim3 blocksPerGrid;
 
 //KERNELS
 
-__global__ void deriv_Y_kernel(float2* u)
-
+__global__ void deriv_Y_kernel(float2* u, domain_t domain)
 {  
 	
-	
-		//Define shared memory
-	
+  //Define shared memory
 
-		__shared__ float2 sf[NY+2];
+  __shared__ float2 sf[NY+2];
 
-		int k   = blockIdx.x;
-		int i   = blockIdx.y;
+  int k   = blockIdx.x;
+  int i   = blockIdx.y;
+  int j   = threadIdx.x;
+  int h   = i*NZ*NY+k*NY+j;
 
-		int j   = threadIdx.x;
-
-
-		int h=i*NZ*NY+k*NY+j;
-
-		float2 u_temp;
-		float2 ap_1;
-		float2 ac_1;
-		float2 am_1;
+  float2 u_temp;
+  float2 ap_1;
+  float2 ac_1;
+  float2 am_1;
 
 
 
-		if(i<NXSIZE & k<NZ & j<NY){
+  if(i<NXSIZE & k<NZ & j<NY){
 
 
-		float a=Fmesh((j+1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);
-		float b=Fmesh((j-1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);	
-		float c;
+    float a=Fmesh((j+1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);
+    float b=Fmesh((j-1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);	
+    float c;
 
-		float A=2.0f*(2.0f*a*b*b-b*b*b)/((a*a-a*b)*(a-b)*(a-b));
-		float B=2.0f*(2.0f*b*a*a-a*a*a)/((b*b-a*b)*(a-b)*(a-b));
-		float C=-A-B;
-		float E;
+    float A=2.0f*(2.0f*a*b*b-b*b*b)/((a*a-a*b)*(a-b)*(a-b));
+    float B=2.0f*(2.0f*b*a*a-a*a*a)/((b*b-a*b)*(a-b)*(a-b));
+    float C=-A-B;
+    float E;
 
 
-		//Read from global to shared
+    //Read from global to shared
 
-		sf[j+1]=u[h];
+    sf[j+1]=u[h];
 						
-		__syncthreads();
+    __syncthreads();
 
 
-		ap_1=sf[j+2];
-		ac_1=sf[j+1];	
-		am_1=sf[j];
+    ap_1=sf[j+2];
+    ac_1=sf[j+1];	
+    am_1=sf[j];
 			
-		u_temp.x=A*ap_1.x+C*ac_1.x+B*am_1.x;
-		u_temp.y=A*ap_1.y+C*ac_1.y+B*am_1.y;
+    u_temp.x=A*ap_1.x+C*ac_1.x+B*am_1.x;
+    u_temp.y=A*ap_1.y+C*ac_1.y+B*am_1.y;
 
-		//Second part multiplied by -1 to ensure simetry of the derivative
+    //Second part multiplied by -1 to ensure simetry of the derivative
 		
-		if(j==0){
+    if(j==0){
 		
-		a=Fmesh((j+1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);
-		b=Fmesh((j+2)*DELTA_Y-1.0f)-Fmesh((j+1)*DELTA_Y-1.0f);
+      a=Fmesh((j+1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);
+      b=Fmesh((j+2)*DELTA_Y-1.0f)-Fmesh((j+1)*DELTA_Y-1.0f);
 
 		
-		A= -(3.0f*a+2.0f*b)/(a*a+a*b);
-		B=  ((a+b)*(2.0f*b-a))/(a*b*b);
-		C=  a*a/(b*b*a+b*b*b);
+      A= -(3.0f*a+2.0f*b)/(a*a+a*b);
+      B=  ((a+b)*(2.0f*b-a))/(a*b*b);
+      C=  a*a/(b*b*a+b*b*b);
 
-		u_temp.x=A*sf[1].x+B*sf[2].x+C*sf[3].x;
-		u_temp.y=A*sf[1].y+B*sf[2].y+C*sf[3].y;			
+      u_temp.x=A*sf[1].x+B*sf[2].x+C*sf[3].x;
+      u_temp.y=A*sf[1].y+B*sf[2].y+C*sf[3].y;			
 		
-		}		
+    }		
 	
-		if(j==NY-1){
+    if(j==NY-1){
 		
-		a=Fmesh((j-1)*DELTA_Y-1.0f)-Fmesh((j)*DELTA_Y-1.0f);
-		b=Fmesh((j-2)*DELTA_Y-1.0f)-Fmesh((j-1)*DELTA_Y-1.0f);
+      a=Fmesh((j-1)*DELTA_Y-1.0f)-Fmesh((j)*DELTA_Y-1.0f);
+      b=Fmesh((j-2)*DELTA_Y-1.0f)-Fmesh((j-1)*DELTA_Y-1.0f);
 
 		
-		A= -(3.0f*a+2.0f*b)/(a*a+a*b);
-		B=  ((a+b)*(2.0f*b-a))/(a*b*b);
-		C=  a*a/(b*b*a+b*b*b);
+      A= -(3.0f*a+2.0f*b)/(a*a+a*b);
+      B=  ((a+b)*(2.0f*b-a))/(a*b*b);
+      C=  a*a/(b*b*a+b*b*b);
 
-		u_temp.x=A*sf[NY].x+B*sf[NY-1].x+C*sf[NY-2].x;
-		u_temp.y=A*sf[NY].y+B*sf[NY-1].y+C*sf[NY-2].y;				
+      u_temp.x=A*sf[NY].x+B*sf[NY-1].x+C*sf[NY-2].x;
+      u_temp.y=A*sf[NY].y+B*sf[NY-1].y+C*sf[NY-2].y;				
 					
-		}	
+    }	
 				
 
-		u[h]=u_temp;
+    u[h]=u_temp;
  	
-	  }
+  }
 
 }
 
 
-__global__ void deriv_YY_kernel(float2* u)
-
+__global__ void deriv_YY_kernel(float2* u, domain_t domain)
 {  
 	
-		//Define shared memory
+  //Define shared memory
 		
-		__shared__ float2 sf[NY+2];
+  __shared__ float2 sf[NY+2];
 
-		int k   = blockIdx.x;
-		int i   = blockIdx.y;
+  int k   = blockIdx.x;
+  int i   = blockIdx.y;
 
-		int j   = threadIdx.x;
+  int j   = threadIdx.x;
 
-		int h=i*NZ*NY+k*NY+j;
+  int h=i*NZ*NY+k*NY+j;
 
-		float2 u_temp;
+  float2 u_temp;
 
-		float2 ap_1;
-		float2 ac_1;	
-		float2 am_1;
+  float2 ap_1;
+  float2 ac_1;	
+  float2 am_1;
 
 
 
-		if(i<NXSIZE & k<NZ & j<NY){
+  if(i<NXSIZE & k<NZ & j<NY){
 		
-		float a=Fmesh((j+1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);
-		float b=Fmesh((j-1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);	
-		float c;
+    float a=Fmesh((j+1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);
+    float b=Fmesh((j-1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);	
+    float c;
 
-		float A=-12.0f*b/(a*a*a-b*b*b-4.0f*a*a*b+4.0f*b*b*a);
-		float B= 12.0f*a/(a*a*a-b*b*b-4.0f*a*a*b+4.0f*b*b*a);
-		float C=-A-B;
-		float E;
+    float A=-12.0f*b/(a*a*a-b*b*b-4.0f*a*a*b+4.0f*b*b*a);
+    float B= 12.0f*a/(a*a*a-b*b*b-4.0f*a*a*b+4.0f*b*b*a);
+    float C=-A-B;
+    float E;
 
-		//Read from global so shared
+    //Read from global so shared
 
-		sf[j+1]=u[h];
+    sf[j+1]=u[h];
 
-		__syncthreads();
-
-
-		ap_1=sf[j+2];
-		ac_1=sf[j+1];
-		am_1=sf[j];	
+    __syncthreads();
 
 
-		u_temp.x=A*ap_1.x+C*ac_1.x+B*am_1.x;
-		u_temp.y=A*ap_1.y+C*ac_1.y+B*am_1.y;
+    ap_1=sf[j+2];
+    ac_1=sf[j+1];
+    am_1=sf[j];	
+
+
+    u_temp.x=A*ap_1.x+C*ac_1.x+B*am_1.x;
+    u_temp.y=A*ap_1.y+C*ac_1.y+B*am_1.y;
 		
-		if(j==0){
+    if(j==0){
 
-		a=Fmesh((j+1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);
-		b=Fmesh((j+2)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);	
+      a=Fmesh((j+1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);
+      b=Fmesh((j+2)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);	
 		
-		A= 6.0f/((a-b)*(2.0f*a-b));
-		B= -6.0f*a/((a*b-b*b)*(2.0f*a-b));
+      A= 6.0f/((a-b)*(2.0f*a-b));
+      B= -6.0f*a/((a*b-b*b)*(2.0f*a-b));
 	
-		E=-A-B;
+      E=-A-B;
 
-		u_temp.x=E*sf[1].x+A*sf[2].x+B*sf[3].x;
-		u_temp.y=E*sf[1].y+A*sf[2].y+B*sf[3].y;				
+      u_temp.x=E*sf[1].x+A*sf[2].x+B*sf[3].x;
+      u_temp.y=E*sf[1].y+A*sf[2].y+B*sf[3].y;				
 
-		}		
+    }		
 	
-		if(j==NY-1){
+    if(j==NY-1){
 
-		a=Fmesh((j-1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);
-		b=Fmesh((j-2)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);
+      a=Fmesh((j-1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);
+      b=Fmesh((j-2)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);
 
-		A= 6.0f/((a-b)*(2.0f*a-b));
-		B= -6.0f*a/((a*b-b*b)*(2.0f*a-b));
+      A= 6.0f/((a-b)*(2.0f*a-b));
+      B= -6.0f*a/((a*b-b*b)*(2.0f*a-b));
 	
-		E=-A-B;
+      E=-A-B;
 
-		u_temp.x=E*sf[NY].x+A*sf[NY-1].x+B*sf[NY-2].x;
-		u_temp.y=E*sf[NY].y+A*sf[NY-1].y+B*sf[NY-2].y;			
+      u_temp.x=E*sf[NY].x+A*sf[NY-1].x+B*sf[NY-2].x;
+      u_temp.y=E*sf[NY].y+A*sf[NY-1].y+B*sf[NY-2].y;			
 
-		}	
+    }	
 		
-		u[h]=u_temp;
+    u[h]=u_temp;
  	
-	  }
+  }
 
 }
 
@@ -359,7 +352,7 @@ extern void setDerivatives_HO(domain_t domain){
 
 extern void deriv_Y_HO(float2* u, domain_t domain){
   
-  deriv_Y_kernel<<<blocksPerGrid,threadsPerBlock>>>(u);
+  deriv_Y_kernel<<<blocksPerGrid,threadsPerBlock>>>(u, domain);
   kernelCheck(RET,domain,"W_kernel");
   
   //Requires extra storage size=( 8×(3+NX*NZ)×sizeof(<type>))
@@ -367,7 +360,7 @@ extern void deriv_Y_HO(float2* u, domain_t domain){
   cusparseCheck(cusparseCgtsvStridedBatch(derivatives_handle,NY,ldiag_y,cdiag_y,
 					  udiag_y,u,NXSIZE*NZ,NY),domain,"HEM");
 			
-	return;
+  return;
 }
 
 

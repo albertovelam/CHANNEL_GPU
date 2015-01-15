@@ -1,7 +1,7 @@
 #include"channel.h"
 
 
-static __global__ void rhs_A_kernel(float2* u)
+static __global__ void rhs_A_kernel(float2* u, domain_t domain)
 
 {  
 
@@ -189,7 +189,7 @@ extern void setHemholzt(domain_t domain){
 
 extern void hemholztSolver(float2* u, domain_t domain){
 
-  rhs_A_kernel<<<blocksPerGrid,threadsPerBlock>>>(u);
+  rhs_A_kernel<<<blocksPerGrid,threadsPerBlock>>>(u,domain);
   kernelCheck(RET,domain,"hemholz");	
 
   cusparseCheck(cusparseCgtsvStridedBatch(hemholzt_handle,NY,ldiag,cdiag,udiag,u,NXSIZE*NZ,NY),domain,"HEM");

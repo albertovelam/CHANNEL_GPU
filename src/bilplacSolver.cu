@@ -2,7 +2,7 @@
 
 //FUNCTIONS
 
-static __global__ void setBoundaryCond(float2* ddu, float2* u,float2* du,float betha,float dt,int IGLOBAL)
+static __global__ void setBoundaryCond(float2* ddu, float2* u,float2* du,float betha,float dt,domain_t domain)
 
 {  
 
@@ -269,7 +269,7 @@ static void setBoundaries(float2* ddv,float2* v,float2* dv,float betha,float dt,
   //Boundary conditions may have problems if dt too small
 
   if(dt>1e-8)
-    setBoundaryCond<<<blocksPerGrid,threadsPerBlock>>>(ddv,v,dv,betha,dt,domain.iglobal);
+    setBoundaryCond<<<blocksPerGrid,threadsPerBlock>>>(ddv,v,dv,betha,dt,domain);
   kernelCheck(RET,domain,"Boundary");
 
 }

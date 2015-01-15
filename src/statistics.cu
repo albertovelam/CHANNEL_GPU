@@ -3,143 +3,143 @@
 
 ///////////////////KERNELS////////////////////////
 
-static __global__ void calcReynolds(float2* dv,float2* ux,float2* uy,int IGLOBAL)
+static __global__ void calcReynolds(float2* dv,float2* ux,float2* uy,domain_t domain)
 {
 	
-	int i = blockIdx.x * blockDim.x + threadIdx.x;
-	int k = blockIdx.y * blockDim.y + threadIdx.y;
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  int k = blockIdx.y * blockDim.y + threadIdx.y;
 
-	int j=k%NY;
-	k=(k-j)/NY;
+  int j=k%NY;
+  k=(k-j)/NY;
 
-	// [i,k,j][NX,NZ,NY]	
+  // [i,k,j][NX,NZ,NY]	
 
-	int h=i*NY*NZ+k*NY+j;
+  int h=i*NY*NZ+k*NY+j;
 
-	float N2=(float)NX*(2*NZ-2);
+  float N2=(float)NX*(2*NZ-2);
 
-	if (i<NXSIZE && j<NY && k<NZ)
-	{
+  if (i<NXSIZE && j<NY && k<NZ)
+    {
 	
 
-	float2 u1=ux[h];
-	float2 u2=uy[h];
+      float2 u1=ux[h];
+      float2 u2=uy[h];
 
-	u2.x=u2.x/N2;
-	u2.y=u2.y/N2;
+      u2.x=u2.x/N2;
+      u2.y=u2.y/N2;
 	
-	u1.x=u1.x/N2;	
-	u1.y=u1.y/N2;
+      u1.x=u1.x/N2;	
+      u1.y=u1.y/N2;
 
 	
-	u2.x=-2.0f*u2.x*u1.x;
-	u2.y=-2.0f*u2.y*u1.y;
+      u2.x=-2.0f*u2.x*u1.x;
+      u2.y=-2.0f*u2.y*u1.y;
 	
-	if(k==0){
+      if(k==0){
 	u2.x*=0.5f;
 	u2.y*=0.5f;
-	}
+      }
 	
 		
 		
-	//Write
+      //Write
 	
-	dv[h]=u2;
+      dv[h]=u2;
 	
-	}
+    }
 	
 	
 }
 
-static __global__ void calcRMS(float2* dv,float2* ux,int IGLOBAL)
+static __global__ void calcRMS(float2* dv,float2* ux,domain_t domain)
 {
 	
 	
-	int i = blockIdx.x * blockDim.x + threadIdx.x;
-	int k = blockIdx.y * blockDim.y + threadIdx.y;
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  int k = blockIdx.y * blockDim.y + threadIdx.y;
 
-	int j=k%NY;
-	k=(k-j)/NY;
+  int j=k%NY;
+  k=(k-j)/NY;
 
-	// [i,k,j][NX,NZ,NY]	
+  // [i,k,j][NX,NZ,NY]	
 
-	int h=i*NY*NZ+k*NY+j;
+  int h=i*NY*NZ+k*NY+j;
 
-	float N2=(float)NX*(2*NZ-2);
+  float N2=(float)NX*(2*NZ-2);
 
-	if (i<NXSIZE && j<NY && k<NZ)
-	{
+  if (i<NXSIZE && j<NY && k<NZ)
+    {
 	
 
-	float2 u1=ux[h];
+      float2 u1=ux[h];
 	
-	u1.x=u1.x/N2;	
-	u1.y=u1.y/N2;
+      u1.x=u1.x/N2;	
+      u1.y=u1.y/N2;
 
-	u1.x=2.0f*u1.x*u1.x;
-	u1.y=2.0f*u1.y*u1.y;
+      u1.x=2.0f*u1.x*u1.x;
+      u1.y=2.0f*u1.y*u1.y;
 	
-	if(k==0){
+      if(k==0){
 	u1.x*=0.5f;
 	u1.y*=0.5f;
-	}
+      }
 	
-	//Write
+      //Write
 	
-	dv[h]=u1;
+      dv[h]=u1;
 	
-	}
+    }
 	
 	
 }
 
 /*
-static __global__ void calcEnstrophy(float2* wx,float2* wy,float2* wz)
-{
+  static __global__ void calcEnstrophy(float2* wx,float2* wy,float2* wz)
+  {
 	
-	int i = blockIdx.x * blockDim.x + threadIdx.x;
-	int k = blockIdx.y * blockDim.y + threadIdx.y;
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  int k = blockIdx.y * blockDim.y + threadIdx.y;
 
-	int j=k%NY;
-	k=(k-j)/NY;
+  int j=k%NY;
+  k=(k-j)/NY;
 
-	float N2=NX*(2*NZ-2);
+  float N2=NX*(2*NZ-2);
 
-	// [i,k,j][NX,NZ,NY]	
+  // [i,k,j][NX,NZ,NY]	
 
-	int h=i*NY*NZ+k*NY+j;
+  int h=i*NY*NZ+k*NY+j;
 
-	if (i<NX && j<NY && k<NZ)
-	{
+  if (i<NX && j<NY && k<NZ)
+  {
 	
-	float2 ens;
+  float2 ens;
 
-	float2 w1=wx[h];
-	float2 w2=wy[h];
-	float2 w3=wz[h];	
+  float2 w1=wx[h];
+  float2 w2=wy[h];
+  float2 w3=wz[h];	
 
-	w1.x=w1.x/N2;	
-	w1.y=w1.y/N2;
+  w1.x=w1.x/N2;	
+  w1.y=w1.y/N2;
 
-	w2.x=w2.x/N2;	
-	w2.y=w2.y/N2;
+  w2.x=w2.x/N2;	
+  w2.y=w2.y/N2;
 	
-	w3.x=w3.x/N2;	
-	w3.y=w3.y/N2;
+  w3.x=w3.x/N2;	
+  w3.y=w3.y/N2;
 
-	//Veamos
+  //Veamos
 	
-	ens.x=w1.x*w1.x+w2.x*w2.x+w3.x*w3.x;
-	ens.y=w1.y*w1.y+w2.y*w2.y+w3.y*w3.y;
+  ens.x=w1.x*w1.x+w2.x*w2.x+w3.x*w3.x;
+  ens.y=w1.y*w1.y+w2.y*w2.y+w3.y*w3.y;
 	
-	//Write
+  //Write
 	
-	wx[h]=ens;
+  wx[h]=ens;
 	
-	}
+  }
 	
 	
-}
+  }
 */
 
 
@@ -159,185 +159,185 @@ float sum[NY];
 
 void calcSt(float2* dv,float2* u,float2* v,float2* w, domain_t domain){
 	
-	threadsPerBlock.x=THREADSPERBLOCK_IN;
-	threadsPerBlock.y=THREADSPERBLOCK_IN;
+  threadsPerBlock.x=THREADSPERBLOCK_IN;
+  threadsPerBlock.y=THREADSPERBLOCK_IN;
 
 
-	blocksPerGrid.x=NXSIZE/threadsPerBlock.x;
-	blocksPerGrid.y=NZ*NY/threadsPerBlock.y;
+  blocksPerGrid.x=NXSIZE/threadsPerBlock.x;
+  blocksPerGrid.y=NZ*NY/threadsPerBlock.y;
 
 
-	int N2=NX*(2*NZ-2);
+  int N2=NX*(2*NZ-2);
 
-	fp1=fopen("/drive1/guillem/Channel/RSTRSS.dat","a");
-	fp2=fopen("/drive1/guillem/Channel/URMS.dat","a");
-	fp3=fopen("/drive1/guillem/Channel/VRMS.dat","a");
-	fp4=fopen("/drive1/guillem/Channel/WRMS.dat","a");
-
-	
-
-	//REYNOLD STRESSES	
-	calcReynolds<<<blocksPerGrid,threadsPerBlock>>>(dv,u,v,domain.iglobal);
-	kernelCheck(ret,domain,"Wkernel");
-
-	sumElementsComplex(dv,sum,domain);
-	
-	for(int j=0;j<NY;j++){
-	fprintf(fp1," %f",sqrt(sum[j]));}
-	fprintf(fp1," \n");
+  fp1=fopen("/drive1/guillem/Channel/RSTRSS.dat","a");
+  fp2=fopen("/drive1/guillem/Channel/URMS.dat","a");
+  fp3=fopen("/drive1/guillem/Channel/VRMS.dat","a");
+  fp4=fopen("/drive1/guillem/Channel/WRMS.dat","a");
 
 	
-	//URMS
 
-	calcRMS<<<blocksPerGrid,threadsPerBlock>>>(dv,u,domain.iglobal);
-	kernelCheck(ret,domain,"Wkernel");
+  //REYNOLD STRESSES	
+  calcReynolds<<<blocksPerGrid,threadsPerBlock>>>(dv,u,v,domain);
+  kernelCheck(ret,domain,"Wkernel");
+
+  sumElementsComplex(dv,sum,domain);
+	
+  for(int j=0;j<NY;j++){
+    fprintf(fp1," %f",sqrt(sum[j]));}
+  fprintf(fp1," \n");
+
+	
+  //URMS
+
+  calcRMS<<<blocksPerGrid,threadsPerBlock>>>(dv,u,domain);
+  kernelCheck(ret,domain,"Wkernel");
 	
 
-	sumElementsComplex(dv,sum,domain);
-	for(int j=0;j<NY;j++){
-	fprintf(fp2," %f",sqrt(sum[j]));}
-	fprintf(fp2," \n");
+  sumElementsComplex(dv,sum,domain);
+  for(int j=0;j<NY;j++){
+    fprintf(fp2," %f",sqrt(sum[j]));}
+  fprintf(fp2," \n");
 	
-	//VRMS
+  //VRMS
 
-	calcRMS<<<blocksPerGrid,threadsPerBlock>>>(dv,v,domain.iglobal);
-	kernelCheck(ret,domain,"Wkernel");
+  calcRMS<<<blocksPerGrid,threadsPerBlock>>>(dv,v,domain);
+  kernelCheck(ret,domain,"Wkernel");
 
 
-	sumElementsComplex(dv,sum,domain);
-	for(int j=0;j<NY;j++){
-	fprintf(fp3," %f",sqrt(sum[j]));}
-	fprintf(fp3," \n");
+  sumElementsComplex(dv,sum,domain);
+  for(int j=0;j<NY;j++){
+    fprintf(fp3," %f",sqrt(sum[j]));}
+  fprintf(fp3," \n");
 
-	//WRMS
+  //WRMS
 
-	calcRMS<<<blocksPerGrid,threadsPerBlock>>>(dv,w,domain.iglobal);
-	kernelCheck(ret,domain,"Wkernel");
+  calcRMS<<<blocksPerGrid,threadsPerBlock>>>(dv,w,domain);
+  kernelCheck(ret,domain,"Wkernel");
 
-	sumElementsComplex(dv,sum,domain);
-	for(int j=0;j<NY;j++){
-	fprintf(fp4," %f",sqrt(sum[j]));}
-	fprintf(fp4," \n");
+  sumElementsComplex(dv,sum,domain);
+  for(int j=0;j<NY;j++){
+    fprintf(fp4," %f",sqrt(sum[j]));}
+  fprintf(fp4," \n");
 	
 
-	fclose(fp1);
-	fclose(fp2);
-	fclose(fp3);
-	fclose(fp4);	
+  fclose(fp1);
+  fclose(fp2);
+  fclose(fp3);
+  fclose(fp4);	
 
 		
-	return;
+  return;
 
 }
 
 /*
-void calcSpectra(float2* dv,float2* u,float2* v,float2* w){
+  void calcSpectra(float2* dv,float2* u,float2* v,float2* w){
 
-	static int counter=0;	
+  static int counter=0;	
 
-	threadsPerBlock.x=threadsPerBlock_in;
-	threadsPerBlock.y=threadsPerBlock_in;
+  threadsPerBlock.x=threadsPerBlock_in;
+  threadsPerBlock.y=threadsPerBlock_in;
 
-	blocksPerGrid.x=NX/threadsPerBlock.x;
-	blocksPerGrid.y=NZ*NY/threadsPerBlock.y;
+  blocksPerGrid.x=NX/threadsPerBlock.x;
+  blocksPerGrid.y=NZ*NY/threadsPerBlock.y;
 
-	int N2=NX*(2*NZ-2);
+  int N2=NX*(2*NZ-2);
 
 
 	
-	static float2* p1u=(float2*)malloc(NX*NZ*sizeof(float2));
-	static float2* p2u=(float2*)malloc(NX*NZ*sizeof(float2));
-	static float2* p3u=(float2*)malloc(NX*NZ*sizeof(float2));
+  static float2* p1u=(float2*)malloc(NX*NZ*sizeof(float2));
+  static float2* p2u=(float2*)malloc(NX*NZ*sizeof(float2));
+  static float2* p3u=(float2*)malloc(NX*NZ*sizeof(float2));
 	
-	static float2* p1v=(float2*)malloc(NX*NZ*sizeof(float2));
-	static float2* p2v=(float2*)malloc(NX*NZ*sizeof(float2));
-	static float2* p3v=(float2*)malloc(NX*NZ*sizeof(float2));
+  static float2* p1v=(float2*)malloc(NX*NZ*sizeof(float2));
+  static float2* p2v=(float2*)malloc(NX*NZ*sizeof(float2));
+  static float2* p3v=(float2*)malloc(NX*NZ*sizeof(float2));
 
-	static float2* p1w=(float2*)malloc(NX*NZ*sizeof(float2));
-	static float2* p2w=(float2*)malloc(NX*NZ*sizeof(float2));
-	static float2* p3w=(float2*)malloc(NX*NZ*sizeof(float2));	
+  static float2* p1w=(float2*)malloc(NX*NZ*sizeof(float2));
+  static float2* p2w=(float2*)malloc(NX*NZ*sizeof(float2));
+  static float2* p3w=(float2*)malloc(NX*NZ*sizeof(float2));	
 
-	static float2* aux=(float2*)malloc(SIZE);
+  static float2* aux=(float2*)malloc(SIZE);
 
 
-	int j=NY/2;
+  int j=NY/2;
 
-	//URMS
+  //URMS
 	
-	cudaCheck(cudaMemcpy(aux,u,SIZE,cudaMemcpyDeviceToHost),"MemInfo1");
+  cudaCheck(cudaMemcpy(aux,u,SIZE,cudaMemcpyDeviceToHost),"MemInfo1");
 	
-	FILE* fp1=fopen("Uspec.dat","w");
+  FILE* fp1=fopen("Uspec.dat","w");
 	
-	for(int i=0;i<NX;i++){
-	for(int k=0;k<NZ;k++){
-	int h=i*NZ*NY+k*NY+j;
-	fprintf(fp1," %f",aux[h].x*aux[h].x+aux[h].y*aux[h].y);}
-	fprintf(fp1," \n");
-	}
+  for(int i=0;i<NX;i++){
+  for(int k=0;k<NZ;k++){
+  int h=i*NZ*NY+k*NY+j;
+  fprintf(fp1," %f",aux[h].x*aux[h].x+aux[h].y*aux[h].y);}
+  fprintf(fp1," \n");
+  }
 	
-	fclose(fp1);
+  fclose(fp1);
 	
-	//VRMS
+  //VRMS
 
-	cudaCheck(cudaMemcpy(aux,v,SIZE,cudaMemcpyDeviceToHost),"MemInfo1");
+  cudaCheck(cudaMemcpy(aux,v,SIZE,cudaMemcpyDeviceToHost),"MemInfo1");
 	
-	static FILE* fp2=fopen("Vspec.dat","w");
+  static FILE* fp2=fopen("Vspec.dat","w");
 	
-	for(int i=0;i<NX;i++){
-	for(int k=0;k<NZ;k++){
-	int h=i*NZ*NY+k*NY+j;
-	fprintf(fp2," %f",aux[h].x*aux[h].x+aux[h].y*aux[h].y);}
-	fprintf(fp2," \n");
-	}
+  for(int i=0;i<NX;i++){
+  for(int k=0;k<NZ;k++){
+  int h=i*NZ*NY+k*NY+j;
+  fprintf(fp2," %f",aux[h].x*aux[h].x+aux[h].y*aux[h].y);}
+  fprintf(fp2," \n");
+  }
 
-	fclose(fp2);
+  fclose(fp2);
 
-	//WRMS
+  //WRMS
 	
-	cudaCheck(cudaMemcpy(aux,w,SIZE,cudaMemcpyDeviceToHost),"MemInfo1");
+  cudaCheck(cudaMemcpy(aux,w,SIZE,cudaMemcpyDeviceToHost),"MemInfo1");
 	
-	static FILE* fp3=fopen("Wspec.dat","w");
+  static FILE* fp3=fopen("Wspec.dat","w");
 	
-	for(int i=0;i<NX;i++){
-	for(int k=0;k<NZ;k++){
-	int h=i*NZ*NY+k*NY+j;
-	fprintf(fp3," %f",aux[h].x*aux[h].x+aux[h].y*aux[h].y);}
-	fprintf(fp3," \n");
-	}
+  for(int i=0;i<NX;i++){
+  for(int k=0;k<NZ;k++){
+  int h=i*NZ*NY+k*NY+j;
+  fprintf(fp3," %f",aux[h].x*aux[h].x+aux[h].y*aux[h].y);}
+  fprintf(fp3," \n");
+  }
 
-	fclose(fp3);
+  fclose(fp3);
 
-	counter++;		
+  counter++;		
 
-	return;
+  return;
 
-}
+  }
 
 
-void calcEnstrophy(float2* ddv,float2* g,float2* v,float2*dv,float2* wx,float2* wz,float2* u,float2* w){
+  void calcEnstrophy(float2* ddv,float2* g,float2* v,float2*dv,float2* wx,float2* wz,float2* u,float2* w){
 
- 	threadsPerBlock.x=threadsPerBlock_in;
-	threadsPerBlock.y=threadsPerBlock_in;
+  threadsPerBlock.x=threadsPerBlock_in;
+  threadsPerBlock.y=threadsPerBlock_in;
 
-	blocksPerGrid.x=NX/threadsPerBlock.x;
-	blocksPerGrid.y=NZ*NY/threadsPerBlock.y;	
+  blocksPerGrid.x=NX/threadsPerBlock.x;
+  blocksPerGrid.y=NZ*NY/threadsPerBlock.y;	
 	 
-	calcUW(u,w,dv,g);
+  calcUW(u,w,dv,g);
 
 
 
-	calcOmega(wx,u,wz,u,v,w);
-	cudaCheck(cudaMemcpy(u,g,SIZE,cudaMemcpyDeviceToDevice),"MemInfo1");
+  calcOmega(wx,u,wz,u,v,w);
+  cudaCheck(cudaMemcpy(u,g,SIZE,cudaMemcpyDeviceToDevice),"MemInfo1");
 
-	fftBackwardTranspose(wx);	
-	fftBackwardTranspose(u);	
-	fftBackwardTranspose(wz);
+  fftBackwardTranspose(wx);	
+  fftBackwardTranspose(u);	
+  fftBackwardTranspose(wz);
 
-	calcEnstrophy<<<blocksPerGrid,threadsPerBlock>>>(wx,u,wz);
+  calcEnstrophy<<<blocksPerGrid,threadsPerBlock>>>(wx,u,wz);
 	
 
-return;
+  return;
 
-}
+  }
 */
 
