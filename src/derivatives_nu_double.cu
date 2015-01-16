@@ -247,8 +247,6 @@ static __global__ void setDiagkernel_Y(double2* ldiag,double2* cdiag,double2* ud
       ldiag_h.x=betha;
       ldiag_h.y=0.0;
 
-      //To be improved 
-		
       if(j==0){
 
 	a=Fmesh((j+1)*DELTA_Y-1.0)-Fmesh(j*DELTA_Y-1.0);
@@ -326,8 +324,6 @@ static __global__ void setDiagkernel_YY(double2* ldiag,double2* cdiag,double2* u
       ldiag_h.x=betha;
       ldiag_h.y=0.0;
 
-      //To be improved 
-		
       if(j==0){
 
 	a=Fmesh((j+1)*DELTA_Y-1.0)-Fmesh(j*DELTA_Y-1.0);
@@ -443,6 +439,9 @@ extern void deriv_YY_HO_double(float2* u, domain_t domain){
     }
   */
 
+  // Second derivative has to be checked before production.
+  // This is crap and I know it.
+  
   deriv_Y_HO_double(u,domain);
   deriv_Y_HO_double(u,domain);
 	

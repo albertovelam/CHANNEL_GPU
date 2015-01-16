@@ -74,7 +74,12 @@ int main(int argc, char** argv)
   
   cudaCheck(cudaGetDeviceProperties(&prop,0),domain,"prop");
   
-  if(rank == 0){	
+  if(rank == 0){
+    // ACHTUNG! Please, nVidia, look at this hard limitation.
+    if(prop.maxThreadsPerBlock < NY){
+      printf("Too many points in the wall-normal direction\n");
+      exit(-1);
+    }
     printf("MaxthreadperN=%d\n",prop.maxThreadsPerBlock);
   }
 
