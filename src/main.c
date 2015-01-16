@@ -106,7 +106,7 @@ int main(int argc, char** argv)
   MPI_Bcast(&(path.ginput), 100, MPI_CHAR, 0, MPI_COMM_WORLD);
   if(strcmp(path.ginput,"-") == 0){
     if(rank == 0) printf("No input files specified. Creating empty files\n");
-    genRandData(ddv,g,(float)(NX*NZ),domain);
+    genRandData(ddv,g,(float) NX,domain);
   }
   else{
     if(rank == 0) printf("Reading Data...\n");
