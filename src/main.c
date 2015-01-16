@@ -98,6 +98,7 @@ int main(int argc, char** argv)
   cudaCheck(cudaMalloc(&g,SIZE),domain,"malloc");
   
   //Read data
+  MPI_Bcast(&(path.ginput), 100, MPI_CHAR, 0, MPI_COMM_WORLD);
   if(strcmp(path.ginput,"-") == 0){
     if(rank == 0) printf("No input files specified. Creating empty files\n");
     genRandData(ddv,g,(float)(NX*NZ),domain);
@@ -107,7 +108,7 @@ int main(int argc, char** argv)
     readData(ddv,g,path,domain);
   }
   //scale(ddv,10.0f);scale(g,10.0f);
-  //genRandData(ddv,g,(float)(NX*NZ));
+  //genRandData(ddv,g,(float)(NX*NZ),domain);
 
   
   if(rank == 0){
