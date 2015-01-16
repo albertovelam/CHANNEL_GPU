@@ -67,33 +67,33 @@ void writeData(float2* ddv,float2* g, paths_t path, domain_t domain){
   
   free(host_buffer);
 	
-	return;
+  return;
 
 }
 
 void genRandData(float2* ddv, float2* g, float F, domain_t domain){
+  
+  int NM=1000;
+	
+  srand(time(NULL));
 
-	int NM=1000;
+  float2* host_buffer=(float2*)malloc(SIZE);
 	
-	srand(time(NULL));
-
-	float2* host_buffer=(float2*)malloc(SIZE);
+  for(int i=0;i<NXSIZE*NZ*NY;i++){
+    host_buffer[i].x=0.5f*F*((rand()%NM)/NM-1.0f);
+    host_buffer[i].y=0.5f*F*((rand()%NM)/NM-1.0f);
+  }
 	
-	for(int i=0;i<NXSIZE*NZ*NY;i++){
-	host_buffer[i].x=0.5f*F*((rand()%NM)/NM-1.0f);
-	host_buffer[i].y=0.5f*F*((rand()%NM)/NM-1.0f);
-	}
+  cudaCheck(cudaMemcpy(g,host_buffer,SIZE,cudaMemcpyHostToDevice),domain,"MemInfo_uy");
 	
-	cudaCheck(cudaMemcpy(g,host_buffer,SIZE,cudaMemcpyHostToDevice),domain,"MemInfo_uy");
+  for(int i=0;i<NXSIZE*NZ*NY;i++){
+    host_buffer[i].x=0.5f*F*((rand()%NM)/NM-1.0f);
+    host_buffer[i].y=0.5f*F*((rand()%NM)/NM-1.0f);
+  }
 	
-	for(int i=0;i<NXSIZE*NZ*NY;i++){
-	host_buffer[i].x=0.5f*F*((rand()%NM)/NM-1.0f);
-	host_buffer[i].y=0.5f*F*((rand()%NM)/NM-1.0f);
-	}
+  cudaCheck(cudaMemcpy(ddv,host_buffer,SIZE,cudaMemcpyHostToDevice),domain,"MemInfo_uy");
 	
-	cudaCheck(cudaMemcpy(ddv,host_buffer,SIZE,cudaMemcpyHostToDevice),domain,"MemInfo_uy");
-	
-	return;
+  return;
 	
 }
 

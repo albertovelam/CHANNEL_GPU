@@ -98,15 +98,22 @@ int main(int argc, char** argv)
   cudaCheck(cudaMalloc(&g,SIZE),domain,"malloc");
   
   //Read data
-  if(rank == 0) printf("Reading Data...\n");
-
-  readData(ddv,g,path,domain);
+  if(strcmp(path.ginput,"-") == 0){
+    if(rank == 0) printf("No input files specified. Creating empty files\n");
+    genRandData(ddv,g,(float)(NX*NZ),domain);
+  }
+  else{
+    if(rank == 0) printf("Reading Data...\n");
+    readData(ddv,g,path,domain);
+  }
   //scale(ddv,10.0f);scale(g,10.0f);
   //genRandData(ddv,g,(float)(NX*NZ));
 
   
   if(rank == 0){
-    readU(path.umeaninput);
+    if(strcmp(path.umeaninput,"-")!= 0){
+      readU(path.umeaninput);
+    }
   }
   
   /*
