@@ -48,5 +48,6 @@ void read_filenames_from_config(paths_t *path, config_t *config){
   config_lookup_string(config, "application.PATH",&dummy);
   strcpy(path->path,dummy);
   config_lookup_int(config, "application.FREQ_STATS",&(*path).freq_stats);
+  config_lookup_int(config, "application.NSTEPS",&(*path).nsteps);
   return;
 }

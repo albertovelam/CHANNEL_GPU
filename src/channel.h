@@ -42,6 +42,7 @@ typedef struct paths_t{
   char umeanoutput[100];
   char path[100];
   int freq_stats;
+  int nsteps;
 } paths_t;
 
 #if !defined(NX) || !defined(NY) || !defined(NZ)

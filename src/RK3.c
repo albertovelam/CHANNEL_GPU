@@ -121,10 +121,9 @@ void RKstep(float2* ddv,float2* g,float time, domain_t domain, paths_t path){
   dealias(g,domain);
   imposeSymetry(ddv,g,domain);
   calcVdV(ddv,v,dv,domain);
-  int Nsteps=30000;
   
   //while(time_elapsed<time){
-  while(counter<Nsteps){
+  while(counter<path.nsteps){
     
     for(int n_step=0;n_step<3;n_step++){
       
