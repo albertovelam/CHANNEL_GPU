@@ -133,7 +133,7 @@ void RKstep(float2* ddv,float2* g,float time, domain_t domain, paths_t path){
       
       //Mean step
       if(domain.rank==0){
-	meanURKstep_1(n_step);
+	meanURKstep_1(n_step,domain);
       }
       
       //Calc non linear terms stored in R_1 and R_2
@@ -147,7 +147,7 @@ void RKstep(float2* ddv,float2* g,float time, domain_t domain, paths_t path){
       
       //Second step
       if(domain.rank==0){
-	meanURKstep_2(dt,n_step,path);
+	meanURKstep_2(dt,n_step,domain,path);
       }
       
       //Second step
