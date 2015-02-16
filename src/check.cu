@@ -1,6 +1,6 @@
 #include"channel.h"
 
-void kernelCheck( cudaError_t error, const char* function)
+void kernelCheck( cudaError_t error, domain_t domain, const char* function)
 {
 
 
@@ -8,40 +8,40 @@ void kernelCheck( cudaError_t error, const char* function)
 		if(error !=cudaSuccess)
 		{
 			const char* error_string= cudaGetErrorString(error);
-			printf("\n error  %s : %s RANK=%d \n", function, error_string,RANK);
+			printf("\n error  %s : %s domain.rank=%d \n", function, error_string,domain.rank);
 			exit(1);
 		}
 
 	return;
 }
 
-extern void cufftCheck( cufftResult error, const char* function )
+extern void cufftCheck( cufftResult error, domain_t domain,  const char* function )
 {
 	if(error != CUFFT_SUCCESS)
 	{
-		printf("\n error  %s : %d RANK=%d \n", function, error,RANK);
+		printf("\n error  %s : %d domain.rank=%d \n", function, error,domain.rank);
 		exit(1);
 	}
 		
 	return;
 }  
 
-extern void cusparseCheck( cusparseStatus_t error, const char* function )
+extern void cusparseCheck( cusparseStatus_t error, domain_t domain,  const char* function )
 {
 	if(error != CUSPARSE_STATUS_SUCCESS)
 	{
-		printf("\n error  %s : %d RANK=%d \n", function, error,RANK);
+		printf("\n error  %s : %d domain.rank=%d \n", function, error,domain.rank);
 		exit(1);
 	}
 		
 	return;
 }  
 
-extern void cublasCheck(cublasStatus_t error, const char* function )
+extern void cublasCheck(cublasStatus_t error, domain_t domain, const char* function )
 {
 	if(error !=  CUBLAS_STATUS_SUCCESS)
 	{
-		printf("\n error  %s : %d RANK=%d \n", function, error,RANK);
+		printf("\n error  %s : %d domain.rank=%d \n", function, error,domain.rank);
 		exit(1);
 	}
 		
@@ -49,12 +49,12 @@ extern void cublasCheck(cublasStatus_t error, const char* function )
 }  
 
 
-extern void cudaCheck( cudaError_t error, const char* function)
+extern void cudaCheck( cudaError_t error, domain_t domain, const char* function)
 {
 	if(error !=cudaSuccess)
 	{
 		const char* error_string= cudaGetErrorString(error);
-		printf("\n error  %s : %s RANK=%d \n", function, error_string,RANK);
+		printf("\n error  %s : %s domain.rank=%d \n", function, error_string,domain.rank);
 		exit(1);
 	}
 		

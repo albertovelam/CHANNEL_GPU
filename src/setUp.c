@@ -1,27 +1,27 @@
 #include"channel.h"
 
-void setUp(void){
+void setUp(domain_t domain){
 
 	//Set up
 
-	fftSetup();
-	setDerivatives_HO();
+	fftSetup(domain);
+	setDerivatives_HO(domain);
 	//setHemholzt();
 	//setImplicit();
-	setRK3();
+	setRK3(domain);
 
-	setTransposeCudaMpi();
+	setTransposeCudaMpi(domain);
 	
-	setDerivativesDouble();
-	setHemholztDouble();
-	setImplicitDouble();
+	setDerivativesDouble(domain);
+	setHemholztDouble(domain);
+	setImplicitDouble(domain);
 
-	cudaCheck(cudaMalloc(&LDIAG,SIZE_AUX),"malloc");
-	cudaCheck(cudaMalloc(&CDIAG,SIZE_AUX),"malloc");
-	cudaCheck(cudaMalloc(&UDIAG,SIZE_AUX),"malloc");
+	cudaCheck(cudaMalloc(&LDIAG,SIZE_AUX),domain,"malloc");
+	cudaCheck(cudaMalloc(&CDIAG,SIZE_AUX),domain,"malloc");
+	cudaCheck(cudaMalloc(&UDIAG,SIZE_AUX),domain,"malloc");
 
 	//AUX FOR TRANPOSE
-	cudaCheck(cudaMalloc(&AUX,SIZE),"malloc");
+	cudaCheck(cudaMalloc(&AUX,SIZE),domain,"malloc");
 
 
 	return;

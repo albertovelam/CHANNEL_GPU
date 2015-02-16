@@ -1,8 +1,5 @@
 #include "channel.h"
 
-int RANK;
-int IGLOBAL;
-
 //Buffer for derivatives
 
 double2* LDIAG;
@@ -11,86 +8,146 @@ double2* CDIAG;
 double2* AUX;
 
 int main(int argc, char** argv)
-{ 
+{ 	
+  int rank;
+  int i;
+  int iglobal;
+  int size;
+  cudaDeviceProp prop;
+  int Ndevices;
+  float2* ddv;
+  float2* g;
+  domain_t domain = {0, 0, 0, 0, 0, 0};
+  char *ginput, *goutput, *ddvinput, *ddvoutput;
+  config_t config;
+  paths_t path;
+  
+  MPI_Init(&argc, &argv);	
+  H5open();
+  
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
 
-	MPI_Init(NULL,NULL);	
-	H5open();
+  // Initial configuration
+  if(rank == 0){
+    config = read_config_file("run.conf");
+    printf("Reading configuration\n");
+    read_domain_from_config(&domain,&config);
+    printf("Reading input file names\n");
+    read_filenames_from_config(&path,&config);
+  }
+  
+  MPI_Bcast(&(domain.nx), 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&(domain.ny), 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&(domain.nz), 1, MPI_INT, 0, MPI_COMM_WORLD);
+  
+  domain.rank = rank;
+  domain.size = size;
+  domain.iglobal = domain.nx * domain.rank / domain.size;
+  
+  for (i=0; i<domain.size; i++){
+    if (i == domain.rank){
+      if (i == 0) printf("rank, size, iglobal, nx, ny ,nz\n");
+      if (i == 0) printf("===============================\n");
+      MPI_Barrier(MPI_COMM_WORLD);
+      printf("%d, %d, %d, %d, %d, %d\n",
+	     domain.rank, domain.size, domain.iglobal,
+	     domain.nx, domain.ny, domain.nz);
+      MPI_Barrier(MPI_COMM_WORLD);
+    }
+  }
+  
+  if(size != MPISIZE){
+    printf("Error. The number of MPI processes is hardcoded in channel.h. Got%d, expecting %d\n",
+	   size,
+	   MPISIZE);
+    exit(1);
+  }
+  
+  cudaCheck(cudaGetDeviceCount(&Ndevices),domain,"device_count");
+  printf("Ndevices=%d\n",Ndevices);
+  
+  //Local id
+  iglobal=NXSIZE*rank;
+  printf("(SIZE,RANK)=(%d,%d)\n",size,rank);
+  
+  cudaCheck(cudaGetDeviceProperties(&prop,0),domain,"prop");
+  
+  if(rank == 0){
+    // ACHTUNG! Please, nVidia, look at this hard limitation.
+    if(prop.maxThreadsPerBlock < NY){
+      printf("Too many points in the wall-normal direction\n");
+      exit(-1);
+    }
+    printf("MaxthreadperN=%d\n",prop.maxThreadsPerBlock);
+  }
 
-	int size;
-	MPI_Comm_size(MPI_COMM_WORLD, &size);
- 	MPI_Comm_rank(MPI_COMM_WORLD, &RANK);
+  // Set up cuda device
+  cudaCheck(cudaSetDevice(rank%2),domain,"Set");		
+  
+  //Set the whole damn thing up
+  setUp(domain);
+  
+  if(rank==0){
+    setRKmean();
+  }
 
-	if(size!=MPISIZE){
-	printf("Error número de procesos debe ser: %d",MPISIZE);
-	exit(1);
-	}
-	
-	int Ndevices;
-	cudaCheck(cudaGetDeviceCount(&Ndevices),"device_count");
-	printf("\nNdevices=%d",Ndevices);
+  if(rank == 0){	
+    printf("Allocation...\n");
+  }
 
-	//Local id
-	IGLOBAL=NXSIZE*RANK;
-	printf("\n(SIZE,RANK)=(%d,%d)",size,RANK);
+  //Allocate initial memory
+  //Two buffers allocated
+  cudaCheck(cudaMalloc(&ddv,SIZE),domain,"malloc");
+  cudaCheck(cudaMalloc(&g,SIZE),domain,"malloc");
+  
+  //Read data
+  MPI_Bcast(&(path.ginput), 100, MPI_CHAR, 0, MPI_COMM_WORLD);
+  if(strcmp(path.ginput,"-") == 0){
+    if(rank == 0) printf("No input files specified. Creating empty files\n");
+    genRandData(ddv,g,(float) NX,domain);
+  }
+  else{
+    if(rank == 0) printf("Reading Data...\n");
+    readData(ddv,g,path,domain);
+  }
+  //scale(ddv,10.0f);scale(g,10.0f);
+  //genRandData(ddv,g,(float)(NX*NZ),domain);
 
-	cudaDeviceProp prop; 
+  
+  if(rank == 0){
+    if(strcmp(path.umeaninput,"-")!= 0){
+      readU(path.umeaninput);
+    }
+  }
+  
+  /*
+    checkDerivatives();
+    checkHemholzt();
+    checkImplicit();
+  */
 
-	cudaCheck(cudaGetDeviceProperties(&prop,0),"prop");
-	if(RANK==0)	
-	printf("\nMaxthreadperN=%d",prop.maxThreadsPerBlock);
-    
+  if(rank == 0){	
+    printf("Starting RK iterations...\n");
+  }
 
-	// Set up cuda device
-	cudaCheck(cudaSetDevice(RANK%2),"Set");		
+  RKstep(ddv,g,1,domain,path);
+  
+  //Write data
+  
+  writeData(ddv,g,path,domain);
+  
+  if(rank==0){
+    writeU(path.umeanoutput);
+    //config_destroy(&config);
+  }
 
-	//Set the whole damn thing up
-	setUp();
-
-	if(RANK==0){
-	setRKmean();
-	}
-	
-	
-
-	//Allocate initial memory
-
-	float2* ddv;
-	float2* g;
-
-	//Two buffers allocated
-
-	cudaCheck(cudaMalloc(&ddv,SIZE),"malloc");
-	cudaCheck(cudaMalloc(&g,SIZE),"malloc");
-
-	//Read data
-
-	readData(ddv,g);
-	//scale(ddv,10.0f);scale(g,10.0f);
-	
-	//genRandData(ddv,g,(float)(NX*NZ));
-
-	if(RANK==0){
-	readU();
-	}
-
-	/*
-	checkDerivatives();
-	checkHemholzt();
-	checkImplicit();
-	*/
-	RKstep(ddv,g,1);
-
-	//Write data
-
-	writeData(ddv,g);
-	
-	if(RANK==0){
-	writeU();}
-
-	H5close();
-	MPI_Finalize();
-	
-
-return 0;
+  H5close();
+  MPI_Finalize();
+  
+  return 0;
 }
+
+
+
