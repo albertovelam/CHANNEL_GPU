@@ -121,9 +121,10 @@ void RKstep(float2* ddv,float2* g,float time, domain_t domain, paths_t path){
   dealias(g,domain);
   imposeSymetry(ddv,g,domain);
   calcVdV(ddv,v,dv,domain);
+  int Nsteps=30000;
   
   //while(time_elapsed<time){
-  while(counter<path.nsteps){
+  while(counter<Nsteps){
     
     for(int n_step=0;n_step<3;n_step++){
       
@@ -132,7 +133,7 @@ void RKstep(float2* ddv,float2* g,float time, domain_t domain, paths_t path){
       
       //Mean step
       if(domain.rank==0){
-	meanURKstep_1(n_step,domain);
+	meanURKstep_1(n_step);
       }
       
       //Calc non linear terms stored in R_1 and R_2
@@ -146,7 +147,7 @@ void RKstep(float2* ddv,float2* g,float time, domain_t domain, paths_t path){
       
       //Second step
       if(domain.rank==0){
-	meanURKstep_2(dt,n_step,domain,path);
+	meanURKstep_2(dt,n_step,path);
       }
       
       //Second step

@@ -27,10 +27,6 @@ typedef struct domain_t{
   int rank;
   int size;
   int iglobal;
-  float lx;
-  float lz;
-  float reynolds;
-  float massflux;
 } domain_t;
 
 typedef struct paths_t{
@@ -41,8 +37,6 @@ typedef struct paths_t{
   char umeaninput[100];
   char umeanoutput[100];
   char path[100];
-  int freq_stats;
-  int nsteps;
 } paths_t;
 
 #if !defined(NX) || !defined(NY) || !defined(NZ)
@@ -53,19 +47,27 @@ typedef struct paths_t{
 // h=1.0f channel height 2.0f
 
 // TODO: make that configurable too.
-#define LY 2.0f
-#define DELTA_Y 2.0f/(NY-1)
-#define PI 3.14159265f
-#define PI2 2.0f*PI
-#define LX domain.lx
-#define LZ domain.lz
+const float LY=2.0f;
+const float DELTA_Y=2.0f/(NY-1);
+
+const float PI2=2.0f*3.14159265f;
+
+
+const float LX=1.0f*PI2;
+const float LZ=0.5f*PI2;
 
 //Reynolds number and bulk velocity
-#define REYNOLDS domain.reynolds
-#define QVELOCITY domain.massflux
 
+const float REYNOLDS=3250.0;
+const float QVELOCITY=1.8f;
+
+static cublasHandle_t   CUBLAS_HANDLE; 
+
+static cudaError_t RET;
+static const int THREADSPERBLOCK_IN=16;
 
 //MPI number of process
+
 #define MPISIZE domain.size
 #define NXSIZE NX/MPISIZE
 #define NYSIZE NY/MPISIZE
@@ -76,9 +78,8 @@ typedef struct paths_t{
 //size local
 #define SIZE NXSIZE*NY*NZ*sizeof(float2)
 
-static cublasHandle_t   CUBLAS_HANDLE; 
-static cudaError_t RET;
-static const int THREADSPERBLOCK_IN=16;
+//Statistics
+const int FREC_STATS=10;
 
 //BUFFERS FOR DERIVATIVES
 
@@ -144,8 +145,8 @@ void readUtau(float2* wz, domain_t domain);
 void writeU(char*);
 void readU(char*);
 
-void meanURKstep_1(int in, domain_t domain);
-void meanURKstep_2(float dt, int in, domain_t domain, paths_t path);
+void meanURKstep_1(int in);
+void meanURKstep_2(float dt, int in, paths_t path);
 
 void writeUmeanT(float2* u_r);
 
