@@ -8,7 +8,7 @@ void calcNL(float2* ddv,float2* g,float2* R_ddv,float2* R_g,
   //Calculate (wy,d_y v)---> u_x, u_z
   calcUW(u,w,dv,g,domain);	
   
-  if(ii==0 && counter%path.freq_stats==0){
+  if(ii==0 && counter%FREC_STATS==0){
     calcSt(dv,u,v,w,domain,path);
     //calcSpectra(dv,u,v,w);
   }

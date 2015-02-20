@@ -41,21 +41,6 @@ int main(int argc, char** argv)
   MPI_Bcast(&(domain.nx), 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&(domain.ny), 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&(domain.nz), 1, MPI_INT, 0, MPI_COMM_WORLD);
-  MPI_Bcast(&(domain.lx), 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
-  MPI_Bcast(&(domain.lz), 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
-  MPI_Bcast(&(domain.reynolds), 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
-  MPI_Bcast(&(domain.massflux), 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
-
-  MPI_Bcast(&(path.ginput), 100, MPI_CHAR, 0, MPI_COMM_WORLD);
-  MPI_Bcast(&(path.goutput), 100, MPI_CHAR, 0, MPI_COMM_WORLD);
-  MPI_Bcast(&(path.ddvinput), 100, MPI_CHAR, 0, MPI_COMM_WORLD);
-  MPI_Bcast(&(path.ddvoutput), 100, MPI_CHAR, 0, MPI_COMM_WORLD);
-  MPI_Bcast(&(path.umeaninput), 100, MPI_CHAR, 0, MPI_COMM_WORLD);
-  MPI_Bcast(&(path.umeanoutput), 100, MPI_CHAR, 0, MPI_COMM_WORLD);
-  MPI_Bcast(&(path.path), 100, MPI_CHAR, 0, MPI_COMM_WORLD);
-  MPI_Bcast(&(path.freq_stats), 1, MPI_INT, 0, MPI_COMM_WORLD);
-  MPI_Bcast(&(path.nsteps), 1, MPI_INT, 0, MPI_COMM_WORLD);
-
   
   domain.rank = rank;
   domain.size = size;
@@ -121,7 +106,7 @@ int main(int argc, char** argv)
   MPI_Bcast(&(path.ginput), 100, MPI_CHAR, 0, MPI_COMM_WORLD);
   if(strcmp(path.ginput,"-") == 0){
     if(rank == 0) printf("No input files specified. Creating empty files\n");
-    genRandData(ddv,g,1.0,domain);
+    genRandData(ddv,g,(float) NX,domain);
   }
   else{
     if(rank == 0) printf("Reading Data...\n");

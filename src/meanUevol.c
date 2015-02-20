@@ -198,7 +198,7 @@ void readUtau(float2* wz, domain_t domain){
 
 }
 
-static void forcing(float2* u, domain_t domain){
+static void forcing(float2* u){
 
   float N2=NX*(2*NZ-2);
 
@@ -344,7 +344,7 @@ void secondDerivative(float2* u){
 
 }
 
-void implicitStepMeanU(float2* u,float betha_RK,float dt, domain_t domain){
+void implicitStepMeanU(float2* u,float betha_RK,float dt){
 
   //Seconnd derivative
 
@@ -436,7 +436,7 @@ void implicitStepMeanU(float2* u,float betha_RK,float dt, domain_t domain){
 
 }
 
-void meanURKstep_1(int in, domain_t domain){
+void meanURKstep_1(int in){
 
 
 
@@ -463,7 +463,7 @@ void meanURKstep_1(int in, domain_t domain){
 
 }
 
-void meanURKstep_2(float dt, int in, domain_t domain, paths_t path){
+void meanURKstep_2(float dt, int in, paths_t path){
 
 
   //End
@@ -474,13 +474,13 @@ void meanURKstep_2(float dt, int in, domain_t domain, paths_t path){
 	
   //Calc implicit step: solve tridiagonal 
 
-  implicitStepMeanU(uw_host,betha[in],dt,domain);
+  implicitStepMeanU(uw_host,betha[in],dt);
 	
   for(int j=0;j<NY;j++){
     u_host[j].x=u_host[j].x+uw_host[j].x;	
   }
 	
-  forcing(u_host, domain);
+  forcing(u_host);
 
   //END OF THE RK STEP
 
