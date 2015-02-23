@@ -55,7 +55,7 @@ int main(int argc, char** argv)
   MPI_Bcast(&(path.umeanoutput), 100, MPI_CHAR, 0, MPI_COMM_WORLD);
   MPI_Bcast(&(path.path), 100, MPI_CHAR, 0, MPI_COMM_WORLD);
 
-printf("LX = %g \n",domain.lx);
+  printf("LX = %g \n",domain.lx);
  
   domain.rank = rank;
   domain.size = size;
