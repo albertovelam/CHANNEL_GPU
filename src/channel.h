@@ -4,12 +4,13 @@
 #include <cuda_runtime.h>
 #include <cuda_runtime_api.h>
 
-#include <cusparse_v2.h>
+//#include <cusparse_v2.h>
 #include <cublas_v2.h>
 #include <cufft.h>
 #include <math.h>
 
 #include <stdlib.h>
+#include <string.h>
 
 #include <hdf5.h>
 #include <hdf5_hl.h>
@@ -18,7 +19,8 @@
 
 //MESHGRID
 
-#define Fmesh(X)  (tanh(2.0*(X))/tanh(2.0))
+#define th2 (0.964027580075816903)
+#define Fmesh(X)  (tanh(2.0*(X))/th2)
 
 typedef struct domain_t{
   int nx;
@@ -27,6 +29,10 @@ typedef struct domain_t{
   int rank;
   int size;
   int iglobal;
+  float lx;
+  float lz;
+  float reynolds;
+  float massflux;
 } domain_t;
 
 typedef struct paths_t{
@@ -37,6 +43,8 @@ typedef struct paths_t{
   char umeaninput[100];
   char umeanoutput[100];
   char path[100];
+  int freq_stats;
+  int nsteps;
 } paths_t;
 
 #if !defined(NX) || !defined(NY) || !defined(NZ)
@@ -47,27 +55,19 @@ typedef struct paths_t{
 // h=1.0f channel height 2.0f
 
 // TODO: make that configurable too.
-const float LY=2.0f;
-const float DELTA_Y=2.0f/(NY-1);
-
-const float PI2=2.0f*3.14159265f;
-
-
-const float LX=1.0f*PI2;
-const float LZ=0.5f*PI2;
+#define LY 2.0f
+#define DELTA_Y (2.0f/(NY-1))
+#define PI 3.14159265f
+#define PI2 (2.0f*PI)
+#define LX domain.lx
+#define LZ domain.lz
 
 //Reynolds number and bulk velocity
+#define REYNOLDS domain.reynolds
+#define QVELOCITY domain.massflux
 
-const float REYNOLDS=3250.0;
-const float QVELOCITY=1.8f;
-
-static cublasHandle_t   CUBLAS_HANDLE; 
-
-static cudaError_t RET;
-static const int THREADSPERBLOCK_IN=16;
 
 //MPI number of process
-
 #define MPISIZE domain.size
 #define NXSIZE NX/MPISIZE
 #define NYSIZE NY/MPISIZE
@@ -78,8 +78,102 @@ static const int THREADSPERBLOCK_IN=16;
 //size local
 #define SIZE NXSIZE*NY*NZ*sizeof(float2)
 
-//Statistics
-const int FREC_STATS=10;
+static cublasHandle_t   CUBLAS_HANDLE; 
+static cudaError_t RET;
+static const int THREADSPERBLOCK_IN=16;
+
+extern char host_name[MPI_MAX_PROCESSOR_NAME];
+extern char mybus[16];
+extern int SMCOUNT;
+extern MPI_Request *send_requests;
+extern MPI_Request *recv_requests;
+extern MPI_Status *send_status;
+extern MPI_Status *recv_status;
+
+extern float2* aux_dev[6];
+extern float2* aux_host_1[6];
+extern float2* aux_host_2[6];
+
+extern cudaStream_t compute_stream;
+extern cudaStream_t h2d_stream;
+extern cudaStream_t d2h_stream;
+extern cudaEvent_t events[1000];
+
+
+#define CHECK_CUDART(x) do { \
+  cudaError_t res = (x); \
+  if(res != cudaSuccess) { \
+    fprintf(stderr, "Rank: %d Node: %s GPU: %s CUDART: %s = %d (%s) at (%s:%d)\n", RANK, host_name, mybus, #x, res, cudaGetErrorString(res),__FILE__,__LINE__); \
+    exit(1); \
+  } \
+} while(0)
+
+#define CHECK_CUBLAS(x) do { \
+  cublasStatus_t cublasStatus = (x); \
+  if(cublasStatus != CUBLAS_STATUS_SUCCESS) { \
+    fprintf(stderr, "Rank: %d Node: %s GPU: %s CUBLAS: %s = %d at (%s:%d)\n",RANK, host_name, mybus, #x, cublasStatus,__FILE__,__LINE__); \
+    exit(1); \
+  } \
+} while(0)
+
+#ifdef USE_CUSPARSE
+#define CHECK_CUSPARSE(x) do { \
+  cusparseStatus_t cusparseStatus = (x); \
+  if(cusparseStatus != CUSPARSE_STATUS_SUCCESS) { \
+    fprintf(stderr, "Rank: %d Node: %s GPU: %s CUSPARSE: %s = %d at (%s:%d)\n",RANK, host_name, mybus, #x, cusparseStatus,__FILE__,__LINE__); \
+    exit(1); \
+  } \
+} while(0)
+#endif
+
+//#define USE_NVTX
+#ifdef USE_NVTX
+#include "nvToolsExt.h"
+
+const uint32_t colors4[] = { 0x0000ff00, 0x000000ff, 0x00ffff00, 0x00ff00ff, 0x0000ffff, 0x00ff0000, 0x00ffffff };
+const int num_colors4 = sizeof(colors4)/sizeof(uint32_t);
+
+#define START_RANGE_ASYNC(name,cid) { \
+        int color_id = cid; \
+        color_id = color_id%num_colors4;\
+        nvtxEventAttributes_t eventAttrib = {0}; \
+        eventAttrib.version = NVTX_VERSION; \
+        eventAttrib.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE; \
+        eventAttrib.colorType = NVTX_COLOR_ARGB; \
+        eventAttrib.color = colors4[color_id]; \
+        eventAttrib.messageType = NVTX_MESSAGE_TYPE_ASCII; \
+        eventAttrib.message.ascii = name; \
+        nvtxRangePushEx(&eventAttrib); \
+}
+#define END_RANGE_ASYNC { \
+        nvtxRangePop(); \
+}
+
+
+#define START_RANGE(name,cid) { \
+        cudaDeviceSynchronize(); \
+        int color_id = cid; \
+        color_id = color_id%num_colors4;\
+        nvtxEventAttributes_t eventAttrib = {0}; \
+        eventAttrib.version = NVTX_VERSION; \
+        eventAttrib.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE; \
+        eventAttrib.colorType = NVTX_COLOR_ARGB; \
+        eventAttrib.color = colors4[color_id]; \
+        eventAttrib.messageType = NVTX_MESSAGE_TYPE_ASCII; \
+        eventAttrib.message.ascii = name; \
+        nvtxRangePushEx(&eventAttrib); \
+}
+#define END_RANGE { \
+        cudaDeviceSynchronize(); \
+        nvtxRangePop(); \
+}
+#else
+#define START_RANGE(name,cid)
+#define END_RANGE
+#define START_RANGE_ASYNC(name,cid)
+#define END_RANGE_ASYNC
+#endif
+
 
 //BUFFERS FOR DERIVATIVES
 
@@ -90,10 +184,34 @@ extern double2* CDIAG;
 extern double2* AUX;
 
 
-#define NSTEPS 4
+#define NSTEPS 1
 #define SIZE_AUX 2*SIZE/NSTEPS
 
 //CUSPARSE HANDELS
+
+/////CUDA////
+extern void trans_zyx_to_yzx(float2* input, float2* output,cudaStream_t stream, domain_t domain);
+extern void trans_yzx_to_zyx(float2* input, float2* output,cudaStream_t stream, domain_t domain);
+extern void trans_yzx_to_zyx_yblock(float2* input, float2* output,cudaStream_t stream, domain_t domain);
+extern void trans_zxy_to_yzx(float2* input, float2* output,cudaStream_t stream, domain_t domain);
+extern void trans_zxy_to_zyx(float2* input, float2* output,cudaStream_t stream, domain_t domain);
+extern void trans_zyx_to_zxy(float2* input, float2* output,cudaStream_t stream, domain_t domain);
+extern void trans_zyx_yblock_to_yzx(float2* input, float2* output,cudaStream_t stream, domain_t domain);
+extern void trans_yzx_to_zxy(float2* input, float2* output,cudaStream_t stream,domain_t domain);
+
+extern void calc_Umax2(float2* ux, float2* uy, float2* uz, float* temp,domain_t domain);
+extern void calc_Dmax2(float2* ux, float2* uy, float* temp,domain_t domain);
+
+extern MPI_Request *send_requests;
+extern MPI_Request *recv_requests;
+extern MPI_Status *send_status;
+extern MPI_Status *recv_status;
+
+void fftBack1T_A(float2* u1,int id, domain_t domain);
+void fftBack1T_B(float2* u1,int id, domain_t domain);
+
+void fftForw1T_A(float2* u1,int id, domain_t domain);
+void fftForw1T_B(float2* u1,int id, domain_t domain);
 
 
 ///////////////////////////C///////////////////////////
@@ -145,8 +263,8 @@ void readUtau(float2* wz, domain_t domain);
 void writeU(char*);
 void readU(char*);
 
-void meanURKstep_1(int in);
-void meanURKstep_2(float dt, int in, paths_t path);
+void meanURKstep_1(int in, domain_t domain);
+void meanURKstep_2(float dt, int in, domain_t domain, paths_t path);
 
 void writeUmeanT(float2* u_r);
 
@@ -176,8 +294,8 @@ void imposeSymetry(float2* u,float2* v, domain_t domain);
 
 //Convolution
 
-void convolution(float2* ux,float2* uy,float2* uz,float2* wx,float2* wy,float2* wz, domain_t domain);
-
+//void convolution(float2* ux,float2* uy,float2* uz,float2* wx,float2* wy,float2* wz, domain_t domain);
+void convolution_max(int ii,float2* ddv, float2* g, float2* ux,float2* uy,float2* uz,float2* wx,float2* wy,float2* wz, domain_t domain);
 //io
 
 void readData(float2* ddv,float2* g, paths_t path, domain_t domain);
@@ -249,12 +367,15 @@ extern void scale(float2* u,float S, domain_t domain);
 
 extern void calcOmega(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,float2* uz, domain_t domain);
 extern void calcRotor(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,float2* uz, domain_t domain);
+extern void calcRotor3(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,float2* uz, domain_t domain );
+extern void calcRotor12(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,float2* uz, domain_t domain );
+
 
 //Check
 
 extern void kernelCheck( cudaError_t error, domain_t domain, const char* function);
 extern void cufftCheck( cufftResult error, domain_t domain, const char* function );
-extern void cusparseCheck( cusparseStatus_t error, domain_t domain, const char* function );
+//extern void cusparseCheck( cusparseStatus_t error, domain_t domain, const char* function );
 extern void cublasCheck(cublasStatus_t error, domain_t domain, const char* function);
 extern void cudaCheck( cudaError_t error, domain_t domain, const char* function);
 extern void mpiCheck( int error, const char* function);

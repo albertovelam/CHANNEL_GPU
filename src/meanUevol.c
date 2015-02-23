@@ -118,7 +118,7 @@ void writeUmean(float2* u,domain_t domain){
 
   //char mess[30];
   //sprintf(mess,"MemInfo_Read_mean:%d",RANK) ;
-  cudaCheck(cudaMemcpy(u,u_host,NY*sizeof(float2), cudaMemcpyHostToDevice),domain,"MemInfo_Read_mean");
+  CHECK_CUDART( cudaMemcpy(u,u_host,NY*sizeof(float2), cudaMemcpyHostToDevice) );
   return;
 	
 
@@ -126,7 +126,7 @@ void writeUmean(float2* u,domain_t domain){
 
 void readNmean(float2* u, domain_t domain){
 
-  cudaCheck(cudaMemcpy(N_host,u,NY*sizeof(float2), cudaMemcpyDeviceToHost),domain,"MemInfo_Read_Nmean");
+  CHECK_CUDART( cudaMemcpy(N_host,u,NY*sizeof(float2), cudaMemcpyDeviceToHost) );
   return;
 
 
@@ -178,10 +178,8 @@ void readU(char* fname){
 void readUtau(float2* wz, domain_t domain){
 
 
-  cudaCheck(cudaMemcpy(&Utau_1,wz,sizeof(float2),cudaMemcpyDeviceToHost),domain,"MemInfo1");
-  cudaCheck(cudaMemcpy(&Utau_2,wz+NY-1,sizeof(float2),cudaMemcpyDeviceToHost),domain,"MemInfo1");
-
-	
+  CHECK_CUDART( cudaMemcpy(&Utau_1,wz     ,sizeof(float2),cudaMemcpyDeviceToHost) );
+  CHECK_CUDART( cudaMemcpy(&Utau_2,wz+NY-1,sizeof(float2),cudaMemcpyDeviceToHost) );
 
   float N2=NX*(2*NZ-2);
 	
@@ -198,7 +196,7 @@ void readUtau(float2* wz, domain_t domain){
 
 }
 
-static void forcing(float2* u){
+static void forcing(float2* u, domain_t domain){
 
   float N2=NX*(2*NZ-2);
 
@@ -221,7 +219,7 @@ static void forcing(float2* u){
 }
 
 void secondDerivative(float2* u){
-
+START_RANGE_ASYNC("secondDericative",37)
 
   //SET DERIVATIVES 
 
@@ -337,15 +335,15 @@ void secondDerivative(float2* u){
 
   solve_tridiagonal_in_place_destructive(u,NY,(const float2*)ldiag_host_yy,(const float2*)cdiag_host_yy,udiag_host_yy);
 	
-
+END_RANGE_ASYNC
 
   return;
 
 
 }
 
-void implicitStepMeanU(float2* u,float betha_RK,float dt){
-
+void implicitStepMeanU(float2* u,float betha_RK,float dt, domain_t domain){
+START_RANGE_ASYNC("implicitStepMeanU",36)
   //Seconnd derivative
 
   for(int j=0;j<NY;j++){
@@ -431,14 +429,14 @@ void implicitStepMeanU(float2* u,float betha_RK,float dt){
 
   solve_tridiagonal_in_place_destructive(u,NY,(const float2*)ldiag_h,(const float2*)cdiag_h,udiag_h);
 
-
+END_RANGE_ASYNC
   return;
 
 }
 
-void meanURKstep_1(int in){
+void meanURKstep_1(int in, domain_t domain){
 
-
+START_RANGE_ASYNC("meanURKstep_1",35)
 
   //Calc first step
 
@@ -458,13 +456,13 @@ void meanURKstep_1(int in){
     uw_host[j].x=(alpha[in]+betha[in])*(1.0f/REYNOLDS)*aux_2[j].x+dseda[in]*N_host[j].x;
 	
   }
-
+END_RANGE_ASYNC
   return;
 
 }
-
-void meanURKstep_2(float dt, int in, paths_t path){
-
+//static int printnow=0;
+void meanURKstep_2(float dt, int in, domain_t domain, paths_t path){
+START_RANGE_ASYNC("meanURKstep_2",34)
 
   //End
 
@@ -474,13 +472,13 @@ void meanURKstep_2(float dt, int in, paths_t path){
 	
   //Calc implicit step: solve tridiagonal 
 
-  implicitStepMeanU(uw_host,betha[in],dt);
+  implicitStepMeanU(uw_host,betha[in],dt,domain);
 	
   for(int j=0;j<NY;j++){
     u_host[j].x=u_host[j].x+uw_host[j].x;	
   }
 	
-  forcing(u_host);
+  forcing(u_host, domain);
 
   //END OF THE RK STEP
 
@@ -496,18 +494,21 @@ void meanURKstep_2(float dt, int in, paths_t path){
 
     //Statistics
 
-    printf("\n(tau_1,tau_2)=(%e,%e)",Utau_1.x,Utau_2.x);	
-
+//    printf("(tau_1,tau_2)=(%e,%e)",Utau_1.x,Utau_2.x);	
+//if(printnow++%10==0){
+//    printnow=1;
     u_tau=sqrt(0.5f*(pow(Utau_1.x,2.0f)+pow(Utau_2.x,2.0f)));
 
-    printf("\n****MEAN_PROFILE_STATISTICS****");
+    printf("****MEAN_PROFILE_STATISTICS****");
+    printf("\n(tau_1,tau_2)=(%e,%e)",Utau_1.x,Utau_2.x);
     printf("\n(RE_t,RE_c,RE_m)=(%e,%e,%e)",u_tau*LY*0.5f/nu,u_host[NY/2].x*0.5f*LY/(nu*N2),1.0f/nu);
     printf("\n(Dx+,Dz+)=(%e,%e)",(3.0f/2.0f)*u_tau*LX/(nu*NX),(3.0f/2.0f)*u_tau*LZ/(nu*(2*NZ-2)));
     printf("\nDy+(max,min)=(%f,%f)",u_tau*(Fmesh((NY/2+1)*DELTA_Y-1.0f)-Fmesh((NY/2)*DELTA_Y-1.0f))/(nu),u_tau*(Fmesh(1*DELTA_Y-1.0f)-Fmesh(0*DELTA_Y-1.0f))/(nu));	
     printf("\nC_f=%e",2.0f*u_tau/(Umean*Umean));
     printf("\n(Um+,Ux+,Um/Uc)=(%f,%f,%f)",Umean/u_tau,u_host[NY/2].x/(u_tau*N2),Umean*N2/u_host[NY/2].x);
     printf("\n");
-    
+//}
+/*    
     strcpy(thispath, path.path);
     strcat(thispath,"MEANPROFILE.dat");
     fp =fopen(thispath,"a");
@@ -555,12 +556,12 @@ void meanURKstep_2(float dt, int in, paths_t path){
     fclose(fp2);
     fclose(fp3);
     fclose(fp4);
-	
+*/	
 
   }
 	
 	
-		
+END_RANGE_ASYNC		
 
   return;
 

@@ -11,6 +11,11 @@ float2 *u;
 float2 *v;
 float2 *w;
 
+float* umax;
+float* gmax;
+float* umax_d;
+float* gmax_d;
+
 const float betha[]={ 37.0f/160.0f, 5.0f/24.0f, 1.0f/6.0f};
 
 
@@ -20,17 +25,16 @@ void setRK3(domain_t domain){
   //Memory allocation
   //8 buffers of size SIZE single precision
 
-  cudaCheck(cudaMalloc(&ddv_w,SIZE),domain,"malloc");
-  cudaCheck(cudaMalloc(&g_w,SIZE),domain,"malloc");
+  CHECK_CUDART( cudaMalloc(&ddv_w,SIZE) );
+  CHECK_CUDART( cudaMalloc(&g_w,SIZE) );
 	
-  cudaCheck(cudaMalloc(&R_ddv,SIZE),domain,"malloc");
-  cudaCheck(cudaMalloc(&R_g,SIZE),domain,"malloc");
+  CHECK_CUDART( cudaMalloc(&R_ddv,SIZE) );
+  CHECK_CUDART( cudaMalloc(&R_g,SIZE) );
 
-  cudaCheck(cudaMalloc(&u,SIZE),domain,"malloc");
-  cudaCheck(cudaMalloc(&v,SIZE),domain,"malloc");
-  cudaCheck(cudaMalloc(&w,SIZE),domain,"malloc");
-	
-  cudaCheck(cudaMalloc(&dv,SIZE),domain,"malloc");
+  CHECK_CUDART( cudaMalloc(&u,SIZE) );
+  CHECK_CUDART( cudaMalloc(&v,SIZE) );
+  CHECK_CUDART( cudaMalloc(&w,SIZE) );
+  CHECK_CUDART( cudaMalloc(&dv,SIZE) );
 
   set2zero(ddv_w,domain);
   set2zero(g_w,domain);
@@ -44,41 +48,48 @@ void setRK3(domain_t domain){
 
   set2zero(dv,domain);
 
+  umax=(float*)malloc(3*sizeof(float));
+  gmax=(float*)malloc(2*sizeof(float));
+  CHECK_CUDART( cudaHostRegister( umax, 3*sizeof(float),0 ) );
+  CHECK_CUDART( cudaHostRegister( gmax, 2*sizeof(float),0 ) );
+  CHECK_CUDART( cudaMalloc((void**)&umax_d, 3*sizeof(float) ) );
+  CHECK_CUDART( cudaMalloc((void**)&gmax_d, 2*sizeof(float) ) );
 
 return;
 
 }
 
 void calcVdV(float2* ddv,float2* v,float2* dv, domain_t domain){
-
+START_RANGE("calcVdV",2)
 
   cudaCheck(cudaMemcpy(v,ddv,SIZE,cudaMemcpyDeviceToDevice),domain,"MemInfo_RK3_1");
   hemholztSolver_double(v,domain);
   cudaCheck(cudaMemcpy(dv,v,SIZE,cudaMemcpyDeviceToDevice),domain,"MemInfo1_RK3_2");
   deriv_Y_HO_double(dv,domain);
 
-
+END_RANGE
   return;
 }
-
+//static int printnow=0;
 static float calcDt(float2* u_x,float2* u_y,float2* u_z,float2* ddv,float2* g, domain_t domain){
-
+START_RANGE("calcDt",3)
 
   float N2=NX*(2*NZ-2);
   float CFL=0.5f;
   
   float dt;
   
-  float* umax=(float*)malloc(3*sizeof(float));
-  float* gmax=(float*)malloc(2*sizeof(float));
+//  float* umax=(float*)malloc(3*sizeof(float));
+//  float* gmax=(float*)malloc(2*sizeof(float));
   
   //Calc max_velocity
   
   int size_l=2*NXSIZE*NY*NZ;
   int index;
   
-  calcUmax(u_x,u_y,u_z,umax,umax+1,umax+2,domain);
-  calcDmax(ddv,g,gmax,gmax+1,domain);
+  //calcUmax(u_x,u_y,u_z,umax,umax+1,umax+2,domain);
+  //calc_Umax2(u_x, u_y, u_z, float* temp,domain_t domain);
+  //calcDmax(ddv,g,gmax,gmax+1,domain);
   
   
   //Print
@@ -89,20 +100,23 @@ static float calcDt(float2* u_x,float2* u_y,float2* u_z,float2* ddv,float2* g, d
   float dt_v=CFL*REYNOLDS/(1.0f/(DELTA_Y*DELTA_Y)+(1.0f/3.0f*NX/LX)*(1.0f/3.0f*NX/LX)+(1.0f/3.0f*NZ/LZ)*(1.0f/3.0f*NZ/LZ));
   
   if(domain.rank==0){
+//if(printnow++%10==0){
+//printnow=1;
     printf("*****RK_STATISTICS****");
     printf("\nmax_V=(%e,%e,%e)",umax[0]/N2,umax[1]/N2,umax[2]/N2);
     printf("\nmax_(ddV,G)=(%e,%e)",gmax[0],gmax[1]);
     printf("\n(dt_c,dt_v)=(%f,%f)",dt,dt_v);
-    printf("\n");		
+    printf("\n");
+//}		
   }
   
   //Print
   
-  free(umax);
-  free(gmax);
+//  free(umax);
+//  free(gmax);
   
   dt=fmin(dt,dt_v);
-  
+//END_RANGE  
   //dt=0.0f;
   return dt;
   
@@ -121,35 +135,40 @@ void RKstep(float2* ddv,float2* g,float time, domain_t domain, paths_t path){
   dealias(g,domain);
   imposeSymetry(ddv,g,domain);
   calcVdV(ddv,v,dv,domain);
-  int Nsteps=30000;
-  
   //while(time_elapsed<time){
-  while(counter<Nsteps){
-    
+  while(counter<path.nsteps){
+START_RANGE("RKstep",counter%2)
+double timer=MPI_Wtime();
     for(int n_step=0;n_step<3;n_step++){
-      
+START_RANGE("RKsubstep",n_step+3)
       //First step		
       RKstep_1(ddv,g,ddv_w,g_w,R_ddv,R_g,dt,n_step,domain);	
       
       //Mean step
       if(domain.rank==0){
-	meanURKstep_1(n_step);
+	meanURKstep_1(n_step,domain);
       }
-      
+END_RANGE 
       //Calc non linear terms stored in R_1 and R_2
       calcNL(ddv,g,R_ddv,R_g,u,v,w,dv,n_step,counter,domain,path);
       
       //Time step
       if(n_step==0){
+END_RANGE
+END_RANGE
 	dt_2=calcDt(u,v,w,ddv,g,domain);	
       }
       
-      
       //Second step
       if(domain.rank==0){
-	meanURKstep_2(dt,n_step,path);
+	meanURKstep_2(dt,n_step,domain,path);
       }
-      
+if(n_step==0){
+END_RANGE     
+}else{
+END_RANGE
+END_RANGE
+} 
       //Second step
       RKstep_2(ddv_w,g_w,R_ddv,R_g,dt,n_step,domain);	
       
@@ -164,6 +183,7 @@ void RKstep(float2* ddv,float2* g,float time, domain_t domain, paths_t path){
       dealias(v,domain);
       dealias(g,domain);
       dealias(dv,domain);
+END_RANGE
     }
     
 
@@ -179,11 +199,16 @@ void RKstep(float2* ddv,float2* g,float time, domain_t domain, paths_t path){
     dt=dt_2;
     time_elapsed+=dt;
     counter++;
+
+timer = MPI_Wtime()-timer;
     
     if(domain.rank==0){
-      printf("\n(time,counter)=(%f,%d)",time_elapsed,counter);
+//if((counter-1)%10==0){
+      printf("\033[0;31m*** wall_time: %1.6f sec (time,counter)=(%f,%d)\033[0m\n\n",timer,time_elapsed,counter);
+      //printf("\n(time,counter)=(%f,%d)",time_elapsed,counter);
+//}
     }
-    
+END_RANGE    
   }
   
   

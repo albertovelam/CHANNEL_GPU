@@ -75,7 +75,7 @@ void genRandData(float2* ddv, float2* g, float F, domain_t domain){
   
   int NM=1000;
 	
-  srand(time(NULL));
+  srand(100/*time(NULL)*/);
 
   float2* host_buffer=(float2*)malloc(SIZE);
 	

@@ -122,7 +122,7 @@ static __global__ void scalekernel(float2* u,float S,domain_t domain)
 }
 
 extern void dealias(float2* u, domain_t domain){
-
+START_RANGE("dealias",12)
 		
   threadsPerBlock.x=THREADSPERBLOCK_IN;
   threadsPerBlock.y=THREADSPERBLOCK_IN;
@@ -135,7 +135,7 @@ extern void dealias(float2* u, domain_t domain){
   dealiaskernel<<<blocksPerGrid,threadsPerBlock>>>(u,domain);
   kernelCheck(RET,domain,"Boundary");
 	
-
+END_RANGE
 
   return;
 
@@ -146,7 +146,7 @@ extern void dealias(float2* u, domain_t domain){
 
 
 extern void set2zero(float2* u, domain_t domain){
-
+START_RANGE("set2zero",13)
 
   threadsPerBlock.x=THREADSPERBLOCK_IN;
   threadsPerBlock.y=THREADSPERBLOCK_IN;
@@ -158,13 +158,13 @@ extern void set2zero(float2* u, domain_t domain){
 	
   zerokernel<<<blocksPerGrid,threadsPerBlock>>>(u,domain);
   kernelCheck(RET,domain,"Boundary");	
-	
+END_RANGE	
   return;
 }
 
 extern void normalize(float2* u, domain_t domain){
 
-
+START_RANGE("normalize",14)
   threadsPerBlock.x=THREADSPERBLOCK_IN;
   threadsPerBlock.y=THREADSPERBLOCK_IN;
 
@@ -175,12 +175,12 @@ extern void normalize(float2* u, domain_t domain){
 	
   normalizekernel<<<blocksPerGrid,threadsPerBlock>>>(u,domain);
   kernelCheck(RET,domain,"Boundary"); 
-	
+END_RANGE	
   return;
 }
 
 extern void scale(float2* u,float S,domain_t domain){
-
+START_RANGE("scale",15)
 
   threadsPerBlock.x=THREADSPERBLOCK_IN;
   threadsPerBlock.y=THREADSPERBLOCK_IN;
@@ -192,7 +192,7 @@ extern void scale(float2* u,float S,domain_t domain){
 	
   scalekernel<<<blocksPerGrid,threadsPerBlock>>>(u,S,domain);
   kernelCheck(RET,domain,"Boundary");	
-	
+END_RANGE	
   return;
 }
 
