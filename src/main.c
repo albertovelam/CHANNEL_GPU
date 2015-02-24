@@ -55,7 +55,15 @@ int main(int argc, char** argv)
   MPI_Bcast(&(path.umeanoutput), 100, MPI_CHAR, 0, MPI_COMM_WORLD);
   MPI_Bcast(&(path.path), 100, MPI_CHAR, 0, MPI_COMM_WORLD);
 
-  printf("LX = %g \n",domain.lx);
+  if (rank == size-1){
+    printf("Summary of configuration parameters\n");
+    printf("===================================\n");
+    printf("LX = %g \n",domain.lx);
+    printf("LX = %g \n",domain.lx);
+    printf("Statistics every %i time steps\n",path.freq_stats);
+    printf("Saving statistics in %s\n",path.path);
+  }
+    
  
   domain.rank = rank;
   domain.size = size;

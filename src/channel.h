@@ -56,16 +56,16 @@ typedef struct paths_t{
 
 // TODO: make that configurable too.
 #define LY 2.0f
-#define DELTA_Y (2.0f/(NY-1))
 #define PI 3.14159265f
 #define PI2 (2.0f*PI)
+
+#define DELTA_Y  (2.0f/(NY-1))
 #define LX domain.lx
 #define LZ domain.lz
 
 //Reynolds number and bulk velocity
 #define REYNOLDS domain.reynolds
 #define QVELOCITY domain.massflux
-
 
 //MPI number of process
 #define MPISIZE domain.size
