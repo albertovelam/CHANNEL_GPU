@@ -49,23 +49,12 @@ static __global__ void setBoundaryCond(float2* ddu, float2* u,float2* du,double 
     double e1py = exp(-l1*(1.0+y));
     double e2py = exp(-l2*(1.0+y));
 
-#if 0
-    double v1   = 0.5*D*(     (e1my + e1py)*o1pe2l1 - (e1my - e1py)*o1me2l1        - (e2my + e1py)*o1pe2l2 + (e2my - e2py)*o1me2l2   );
-    double v2   = 0.5*D*(     (e1my + e1py)*o1pe2l1 + (e1my - e1py)*o1me2l1        - (e2my + e1py)*o1pe2l2 - (e2my - e2py)*o1me2l2   );
-    double dv1  = 0.5*D*( l1*((e1my - e1py)*o1pe2l1 - (e1my + e1py)*o1me2l1) + l2*(- (e2my - e1py)*o1pe2l2 + (e2my + e2py)*o1me2l2 ) );
-    double dv2  = 0.5*D*( l1*((e1my - e1py)*o1pe2l1 + (e1my + e1py)*o1me2l1) + l2*(- (e2my - e1py)*o1pe2l2 - (e2my + e2py)*o1me2l2 ) );
-    double ddv1 = 0.5*  (     (e1my + e1py)*o1pe2l1 - (e1my - e1py)*o1me2l1                                                                );
-    double ddv2 = 0.5*  (     (e1my + e1py)*o1pe2l1 + (e1my - e1py)*o1me2l1                                                                );
-#else
-//bug? change second instance of e1py to e2py for v1,v2,dv1,dv2
     double v1   = 0.5*D*(     (e1my + e1py)*o1pe2l1 - (e1my - e1py)*o1me2l1        - (e2my + e2py)*o1pe2l2 + (e2my - e2py)*o1me2l2   );
     double v2   = 0.5*D*(     (e1my + e1py)*o1pe2l1 + (e1my - e1py)*o1me2l1        - (e2my + e2py)*o1pe2l2 - (e2my - e2py)*o1me2l2   );
     double dv1  = 0.5*D*( l1*((e1my - e1py)*o1pe2l1 - (e1my + e1py)*o1me2l1) + l2*(- (e2my - e2py)*o1pe2l2 + (e2my + e2py)*o1me2l2 ) );
     double dv2  = 0.5*D*( l1*((e1my - e1py)*o1pe2l1 + (e1my + e1py)*o1me2l1) + l2*(- (e2my - e2py)*o1pe2l2 - (e2my + e2py)*o1me2l2 ) );
     double ddv1 = 0.5*  (     (e1my + e1py)*o1pe2l1 - (e1my - e1py)*o1me2l1                                                                );
     double ddv2 = 0.5*  (     (e1my + e1py)*o1pe2l1 + (e1my - e1py)*o1me2l1                                                                );
-#endif
-
     float2 ddu_kf=ddu[h];
     float2 du_kf=du[h];
     float2 u_kf=u[h];

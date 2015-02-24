@@ -56,7 +56,7 @@ typedef struct paths_t{
 
 // TODO: make that configurable too.
 #define LY 2.0f
-#define PI 3.14159265f
+#define PI 3.14159265358979
 #define PI2 (2.0f*PI)
 
 #define DELTA_Y  (2.0f/(NY-1))
