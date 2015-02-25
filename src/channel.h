@@ -316,8 +316,8 @@ void transposeBatched(float2* u_2,const float2* u_1,int Nx,int Ny,int batch, dom
 void transpose(float2* u_2,const float2* u_1,int Nx,int Ny, domain_t domain);
 
 //Statistics
-void calcSt(float2* dv,float2* u,float2* v,float2* w, domain_t domain, paths_t path);
-
+//void calcSt(float2* dv,float2* u,float2* v,float2* w, domain_t domain, paths_t path);
+void calcSt(float2* a1,float2* a2,float2* dv,float2* u,float2* v,float2* w, domain_t domain, paths_t path);
 
 //Routine check
 void checkDerivatives(void);

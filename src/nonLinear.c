@@ -9,7 +9,7 @@ START_RANGE("calcNL",21)
   calcUW(u,w,dv,g,domain);	
   
   if(ii==0 && counter%path.freq_stats==0){
-    calcSt(dv,u,v,w,domain,path);
+    calcSt(R_ddv,dv,R_g,u,v,w,domain,path);
     //calcSpectra(dv,u,v,w);
   }
   

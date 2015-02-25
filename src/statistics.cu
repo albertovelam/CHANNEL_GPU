@@ -155,10 +155,17 @@ static FILE* fp1;
 static FILE* fp2;
 static FILE* fp3;
 static FILE* fp4;
+static FILE* fp5;
+static FILE* fp6;
+static FILE* fp7;
+static FILE* fp8;
+static FILE* fp9;
+
 
 float sum[NY];
 
-void calcSt(float2* dv,float2* u,float2* v,float2* w, domain_t domain, paths_t path){
+void calcSt(float2* a1,float2* a2,float2* dv,float2* u,float2* v,float2* w, domain_t domain, paths_t path){
+  
   char dummy[100];
   threadsPerBlock.x=THREADSPERBLOCK_IN;
   threadsPerBlock.y=THREADSPERBLOCK_IN;
@@ -171,32 +178,72 @@ void calcSt(float2* dv,float2* u,float2* v,float2* w, domain_t domain, paths_t p
   int N2=NX*(2*NZ-2);
 
   strcpy(dummy,path.path);
-  strcat(dummy,"RSTRSS.dat");
+  strcat(dummy,"UVRMS.dat");
   fp1=fopen(dummy,"a");
-  
+
   strcpy(dummy,path.path);
-  strcat(dummy,"URMS.dat");
+  strcat(dummy,"VWRMS.dat");
   fp2=fopen(dummy,"a");
   
   strcpy(dummy,path.path);
-  strcat(dummy,"VRMS.dat");
+  strcat(dummy,"WURMS.dat");
   fp3=fopen(dummy,"a");
+  
+  
+  strcpy(dummy,path.path);
+  strcat(dummy,"URMS.dat");
+  fp4=fopen(dummy,"a");
+  
+  strcpy(dummy,path.path);
+  strcat(dummy,"VRMS.dat");
+  fp5=fopen(dummy,"a");
   
   strcpy(dummy,path.path);
   strcat(dummy,"WRMS.dat");
-  fp4=fopen(dummy,"a");
+  fp6=fopen(dummy,"a");
+
+  strcpy(dummy,path.path);
+  strcat(dummy,"VORXRMS.dat");
+  fp7=fopen(dummy,"a");
+
+  strcpy(dummy,path.path);
+  strcat(dummy,"VORYRMS.dat");
+  fp8=fopen(dummy,"a");
+
+  strcpy(dummy,path.path);
+  strcat(dummy,"VORZRMS.dat");
+  fp9=fopen(dummy,"a");
 
 
 
   //REYNOLD STRESSES
+
   calcReynolds<<<blocksPerGrid,threadsPerBlock>>>(dv,u,v,domain);
+  kernelCheck(ret,domain,"Wkernel");
+
+  sumElementsComplex(dv,sum,domain);
+
+  for(int j=0;j<NY;j++){
+  fprintf(fp1," %e",sum[j]);}
+  fprintf(fp1," \n");
+
+  calcReynolds<<<blocksPerGrid,threadsPerBlock>>>(dv,v,w,domain);
   kernelCheck(ret,domain,"Wkernel");
 
   sumElementsComplex(dv,sum,domain);
 	
   for(int j=0;j<NY;j++){
-    fprintf(fp1," %f",sqrt(sum[j]));}
-  fprintf(fp1," \n");
+  fprintf(fp2," %e",sum[j]);}
+  fprintf(fp2," \n");
+
+  calcReynolds<<<blocksPerGrid,threadsPerBlock>>>(dv,w,u,domain);
+  kernelCheck(ret,domain,"Wkernel");
+
+  sumElementsComplex(dv,sum,domain);
+	
+  for(int j=0;j<NY;j++){
+  fprintf(fp3," %e",sum[j]);}
+  fprintf(fp3," \n");
 
 	
   //URMS
@@ -207,8 +254,8 @@ void calcSt(float2* dv,float2* u,float2* v,float2* w, domain_t domain, paths_t p
 
   sumElementsComplex(dv,sum,domain);
   for(int j=0;j<NY;j++){
-    fprintf(fp2," %f",sqrt(sum[j]));}
-  fprintf(fp2," \n");
+  fprintf(fp4," %e",sqrt(sum[j]));}
+  fprintf(fp4," \n");
 	
   //VRMS
 
@@ -218,8 +265,8 @@ void calcSt(float2* dv,float2* u,float2* v,float2* w, domain_t domain, paths_t p
 
   sumElementsComplex(dv,sum,domain);
   for(int j=0;j<NY;j++){
-    fprintf(fp3," %f",sqrt(sum[j]));}
-  fprintf(fp3," \n");
+  fprintf(fp5," %e",sqrt(sum[j]));}
+  fprintf(fp5," \n");
 
   //WRMS
 
@@ -228,14 +275,52 @@ void calcSt(float2* dv,float2* u,float2* v,float2* w, domain_t domain, paths_t p
 
   sumElementsComplex(dv,sum,domain);
   for(int j=0;j<NY;j++){
-    fprintf(fp4," %f",sqrt(sum[j]));}
-  fprintf(fp4," \n");
-	
+  fprintf(fp6," %e",sqrt(sum[j]));}
+  fprintf(fp6," \n");
+
+  calcOmega(a1,dv,a2,u,v,w,domain);	
+
+  //VOR X RMS
+
+  calcRMS<<<blocksPerGrid,threadsPerBlock>>>(a1,a1,domain);
+  kernelCheck(ret,domain,"Wkernel");
+
+  sumElementsComplex(a1,sum,domain);
+  for(int j=0;j<NY;j++){
+  fprintf(fp7," %e",sqrt(sum[j]));}
+  fprintf(fp7," \n");
+
+  //VOR Y RMS
+
+  calcRMS<<<blocksPerGrid,threadsPerBlock>>>(a1,dv,domain);
+  kernelCheck(ret,domain,"Wkernel");
+
+  sumElementsComplex(a1,sum,domain);
+  for(int j=0;j<NY;j++){
+  fprintf(fp8," %e",sqrt(sum[j]));}
+  fprintf(fp8," \n");
+
+  //VOR Z RMS
+
+  calcRMS<<<blocksPerGrid,threadsPerBlock>>>(a1,a2,domain);
+  kernelCheck(ret,domain,"Wkernel");
+
+  sumElementsComplex(a1,sum,domain);
+  for(int j=0;j<NY;j++){
+  fprintf(fp9," %e",sqrt(sum[j]));}
+  fprintf(fp9," \n");
+
 
   fclose(fp1);
   fclose(fp2);
   fclose(fp3);
   fclose(fp4);
+  fclose(fp5);
+  fclose(fp6);
+  fclose(fp7);
+  fclose(fp8);
+  fclose(fp9);
+
 
 		
   return;
@@ -243,7 +328,7 @@ void calcSt(float2* dv,float2* u,float2* v,float2* w, domain_t domain, paths_t p
 }
 
 /*
-  void calcSpectra(float2* dv,float2* u,float2* v,float2* w){
+void calcSpectra(float2* dv,float2* u,float2* v,float2* w){
 
   static int counter=0;	
 
