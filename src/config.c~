@@ -1,0 +1,97 @@
+#include "channel.h"
+#include <string.h>
+
+void read_domain_from_config(domain_t *domain){
+  config_t config;
+  config_init(&config);
+
+  if ( !config_read_file(&config, "run.conf")){
+    fprintf(stderr,  "%s:%d - %s\n", config_error_file(&config),
+	    config_error_line(&config), config_error_text(&config));
+    config_destroy(&config);
+    exit(1);
+  }
+
+  config_lookup_int(&config, "application.NX", &(*domain).nx);
+  config_lookup_int(&config, "application.NY", &(*domain).ny);
+  config_lookup_int(&config, "application.NZ", &(*domain).nz);
+  
+  config_destroy(&config);
+  return;
+}
+
+char* read_ginput_from_config(void){
+  config_t config;
+  config_init(&config);
+  const char *name;
+  char *dest = NULL;
+  int len;
+  
+  if ( !config_read_file(&config, "run.conf")){
+    fprintf(stderr,  "%s:%d - %s\n", config_error_file(&config),
+	    config_error_line(&config), config_error_text(&config));
+    config_destroy(&config);
+    exit(1);
+  }
+  strcpy(dest,config_setting_get_string(config_lookup(&config, "application.input.G")));
+  config_destroy(&config);
+  return dest;
+}
+
+
+char* read_goutput_from_config(void){
+  config_t config;
+  config_init(&config);
+  const char* name;
+  char* dest = NULL;
+  
+  if ( !config_read_file(&config, "run.conf")){
+    fprintf(stderr,  "%s:%d - %s\n", config_error_file(&config),
+	    config_error_line(&config), config_error_text(&config));
+    config_destroy(&config);
+    exit(1);
+  }
+  
+  config_lookup_string(&config, "application.output.G", &name);
+  strcpy(dest,name);
+  config_destroy(&config);
+  return dest;
+}
+
+char* read_ddvinput_from_config(void){
+  config_t config;
+  config_init(&config);
+  const char *name;
+  char* dest = NULL;
+  
+  if ( !config_read_file(&config, "run.conf")){
+    fprintf(stderr,  "%s:%d - %s\n", config_error_file(&config),
+	    config_error_line(&config), config_error_text(&config));
+    config_destroy(&config);
+    exit(1);
+  }
+  
+  config_lookup_string(&config, "application.input.DDV", &name);
+
+  config_destroy(&config);
+  return dest;
+}
+
+char* read_ddvoutput_from_config(void){
+  config_t config;
+  config_init(&config);
+  const char* name;
+  char* dest = NULL;
+  
+  if ( !config_read_file(&config, "run.conf")){
+    fprintf(stderr,  "%s:%d - %s\n", config_error_file(&config),
+	    config_error_line(&config), config_error_text(&config));
+    config_destroy(&config);
+    exit(1);
+  }
+  
+  config_lookup_string(&config, "application.output.DDV", &name);
+  strcpy(dest,name);
+  config_destroy(&config);
+  return dest;
+}
