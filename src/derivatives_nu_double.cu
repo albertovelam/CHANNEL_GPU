@@ -174,30 +174,19 @@ static __global__ void deriv_Y_kernel(double2* v,float2* u, domain_t domain)
     double A=2.0*(2.0*a*b*b-b*b*b)/((a*a-a*b)*(a-b)*(a-b));
     double B=2.0*(2.0*b*a*a-a*a*a)/((b*b-a*b)*(a-b)*(a-b));
     double C=-A-B;
-	
-
     //Read from global to shared
-
     sf[j+1].x=(double)u[h].x;
     sf[j+1].y=(double)u[h].y;
-						
     __syncthreads();
-
-
     ap_1=sf[j+2];
     ac_1=sf[j+1];	
     am_1=sf[j];
-			
     u_temp.x=A*ap_1.x+C*ac_1.x+B*am_1.x;
     u_temp.y=A*ap_1.y+C*ac_1.y+B*am_1.y;
-
     //Second part multiplied by -1 to ensure simetry of the derivative
-		
     if(j==0){
-		
       a=Fmesh((j+1)*DELTA_Y-1.0)-Fmesh(j*DELTA_Y-1.0);
       b=Fmesh((j+2)*DELTA_Y-1.0)-Fmesh((j+1)*DELTA_Y-1.0);
-
 		
       A= -(3.0*a+2.0*b)/(a*a+a*b);
       B=  ((a+b)*(2.0*b-a))/(a*b*b);
@@ -205,14 +194,11 @@ static __global__ void deriv_Y_kernel(double2* v,float2* u, domain_t domain)
 
       u_temp.x=A*sf[1].x+B*sf[2].x+C*sf[3].x;
       u_temp.y=A*sf[1].y+B*sf[2].y+C*sf[3].y;			
-		
     }		
 	
     if(j==NY-1){
-		
       a=Fmesh((j-1)*DELTA_Y-1.0)-Fmesh((j)*DELTA_Y-1.0);
       b=Fmesh((j-2)*DELTA_Y-1.0)-Fmesh((j-1)*DELTA_Y-1.0);
-
 		
       A= -(3.0*a+2.0*b)/(a*a+a*b);
       B=  ((a+b)*(2.0*b-a))/(a*b*b);
@@ -220,12 +206,9 @@ static __global__ void deriv_Y_kernel(double2* v,float2* u, domain_t domain)
 
       u_temp.x=A*sf[NY].x+B*sf[NY-1].x+C*sf[NY-2].x;
       u_temp.y=A*sf[NY].y+B*sf[NY-1].y+C*sf[NY-2].y;				
-					
     }	
-				
 
     v[h]=u_temp;
- 	
   }
 
 }
@@ -550,12 +533,42 @@ START_RANGE("setDerivativesDouble",16)
   CHECK_CUDART( cudaMemcpy(b_d,b_h,NY*sizeof(double),cudaMemcpyHostToDevice) );
   CHECK_CUDART( cudaMemcpy(c_d,c_h,NY*sizeof(double),cudaMemcpyHostToDevice) );
 
-  free(a_h); free(b_h); free(c_h);
+  for(int j=0; j<NY; j++){
+    double a=Fmesh((j+1)*DELTA_Y-1.0)-Fmesh(j*DELTA_Y-1.0);
+    double b=Fmesh((j-1)*DELTA_Y-1.0)-Fmesh(j*DELTA_Y-1.0);
+    double A=2.0*(2.0*a*b*b-b*b*b)/((a*a-a*b)*(a-b)*(a-b));
+    double B=2.0*(2.0*b*a*a-a*a*a)/((b*b-a*b)*(a-b)*(a-b));
+    double C=-A-B;
 
+    if(j==0){
+      a=Fmesh((j+1)*DELTA_Y-1.0)-Fmesh(j*DELTA_Y-1.0);
+      b=Fmesh((j+2)*DELTA_Y-1.0)-Fmesh((j+1)*DELTA_Y-1.0);
+      A= -(3.0*a+2.0*b)/(a*a+a*b);
+      B=  ((a+b)*(2.0*b-a))/(a*b*b);
+      C=  a*a/(b*b*a+b*b*b);
+    }
+
+    if(j==NY-1){
+      a=Fmesh((j-1)*DELTA_Y-1.0)-Fmesh((j)*DELTA_Y-1.0);
+      b=Fmesh((j-2)*DELTA_Y-1.0)-Fmesh((j-1)*DELTA_Y-1.0);
+      A= -(3.0*a+2.0*b)/(a*a+a*b);
+      B=  ((a+b)*(2.0*b-a))/(a*b*b);
+      C=  a*a/(b*b*a+b*b*b);
+    }
+    a_h[j] = A;
+    b_h[j] = B;
+    c_h[j] = C;
+  }
   CHECK_CUDART( cudaMalloc((void**)&Ac, NY*sizeof(double)) );
   CHECK_CUDART( cudaMalloc((void**)&Bc, NY*sizeof(double)) );
   CHECK_CUDART( cudaMalloc((void**)&Cc, NY*sizeof(double)) );
-  deriv_Y_WABC_kernel<<<1,NY>>>(Ac,Bc,Cc,domain);
+  CHECK_CUDART( cudaMemcpy(Ac,a_h,NY*sizeof(double),cudaMemcpyHostToDevice) );
+  CHECK_CUDART( cudaMemcpy(Bc,b_h,NY*sizeof(double),cudaMemcpyHostToDevice) );
+  CHECK_CUDART( cudaMemcpy(Cc,c_h,NY*sizeof(double),cudaMemcpyHostToDevice) );
+
+  free(a_h); free(b_h); free(c_h);
+
+//  deriv_Y_WABC_kernel<<<1,NY>>>(Ac,Bc,Cc,domain);
 
 #endif
 END_RANGE

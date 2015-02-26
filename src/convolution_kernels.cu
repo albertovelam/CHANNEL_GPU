@@ -6,19 +6,20 @@ static dim3 blocksPerGrid;
 
 static __global__ void calcOmegakernel(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,float2* uz,domain_t domain)
 {
-	
+/*	
   int k = blockIdx.x * blockDim.x + threadIdx.x;
   int i = blockIdx.y * blockDim.y + threadIdx.y;
-
   int j=k%NY;
   k=(k-j)/NY;
-
   // [i,k,j][NX,NZ,NY]	
-
   int h=i*NY*NZ+k*NY+j;
-
-
   if (i<NXSIZE && j<NY && k<NZ)
+*/
+  int h = blockIdx.x * blockDim.x + threadIdx.x;
+  int j = h%NY;
+  int i = h/(NY*NZ);
+  int k = (h-i*NY*NZ)/NY;
+  if(h<NXSIZE*NY*NZ)
     {
 	
       float k1;
@@ -261,21 +262,24 @@ static __global__ void rotorkernel(float2* wx,float2* wy,float2* wz,float2* ux,f
 
 extern void calcOmega(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,float2* uz, domain_t domain){
 //START_RANGE("calcOmega",29)
-	
+/*	
   threadsPerBlock.x=THREADSPERBLOCK_IN;
   threadsPerBlock.y=THREADSPERBLOCK_IN;
-
-
   blocksPerGrid.y=NXSIZE/threadsPerBlock.x;
   blocksPerGrid.x=NZ*NY/threadsPerBlock.y;
 
-
   calcOmegakernel<<<blocksPerGrid,threadsPerBlock>>>(wx,wy,wz,ux,uy,uz,domain);
   kernelCheck(RET,domain,"Boundary");
+*/
+  dim3 grid,block;
+  block.x = 128;
+  grid.x = (NXSIZE*NY*NZ + block.x - 1)/block.x;
+  
+  calcOmegakernel<<<grid,block>>>(wx,wy,wz,ux,uy,uz,domain);
 
 //END_RANGE
 }
-
+/*
 extern void calcRotor(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,float2* uz, domain_t domain){
 //START_RANGE("calcRotor",30)
 	
@@ -291,7 +295,7 @@ extern void calcRotor(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,flo
 //END_RANGE
 
 }
-
+*/
 extern  void calcRotor3(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,float2* uz, domain_t domain )
 {
 //START_RANGE_ASYNC("rotor_3",29)

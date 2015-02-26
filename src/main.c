@@ -28,7 +28,6 @@ int main(int argc, char** argv)
   MPI_Comm_size(MPI_COMM_WORLD, &size);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-
   // Initial configuration
   if(rank == 0){
     config = read_config_file("run.conf");
@@ -55,16 +54,6 @@ int main(int argc, char** argv)
   MPI_Bcast(&(path.umeanoutput), 100, MPI_CHAR, 0, MPI_COMM_WORLD);
   MPI_Bcast(&(path.path), 100, MPI_CHAR, 0, MPI_COMM_WORLD);
 
-  if (rank == size-1){
-    printf("Summary of configuration parameters\n");
-    printf("===================================\n");
-    printf("LX = %g \n",domain.lx);
-    printf("LX = %g \n",domain.lx);
-    printf("Statistics every %i time steps\n",path.freq_stats);
-    printf("Saving statistics in %s\n",path.path);
-  }
-    
- 
   domain.rank = rank;
   domain.size = size;
   domain.iglobal = domain.nx * domain.rank / domain.size;
@@ -96,8 +85,8 @@ int main(int argc, char** argv)
   iglobal=NXSIZE*rank;
   //printf("(SIZE,RANK)=(%d,%d)\n",size,rank);
   
-  cudaCheck(cudaGetDeviceProperties(&prop,0),domain,"prop");
-  
+  CHECK_CUDART( cudaGetDeviceProperties(&prop,0) );
+/*  
   if(rank == 0){
     // ACHTUNG! Please, nVidia, look at this hard limitation.
     if(prop.maxThreadsPerBlock < NY){
@@ -106,6 +95,7 @@ int main(int argc, char** argv)
     }
     //printf("MaxthreadperN=%d\n",prop.maxThreadsPerBlock);
   }
+*/
 
   // Set up cuda device
   //cudaCheck(cudaSetDevice(rank),domain,"Set");		

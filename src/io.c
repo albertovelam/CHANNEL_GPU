@@ -14,7 +14,7 @@ void readData(float2* ddv, float2* g, paths_t path, domain_t domain){
 			       2*domain.nz,
 			       domain.rank,
 			       domain.size),"read");	
-  cudaCheck(cudaMemcpy(g,host_buffer,SIZE,cudaMemcpyHostToDevice),domain,"MemInfo_uy");
+  CHECK_CUDART( cudaMemcpy(g,host_buffer,SIZE,cudaMemcpyHostToDevice) );
 	
   mpiCheck(read_parallel_float(path.ddvinput,
 			       (float *)host_buffer,
@@ -23,10 +23,10 @@ void readData(float2* ddv, float2* g, paths_t path, domain_t domain){
 			       2*domain.nz,
 			       domain.rank,
 			       domain.size),"read");	
-  cudaCheck(cudaMemcpy(ddv,
+  CHECK_CUDART( cudaMemcpy(ddv,
 		       host_buffer,
 		       SIZE,
-		       cudaMemcpyHostToDevice),domain,"MemInfo_uy");
+		       cudaMemcpyHostToDevice) );
   
   free(host_buffer);
   
@@ -41,10 +41,10 @@ void writeData(float2* ddv,float2* g, paths_t path, domain_t domain){
   //read u
   
 		
-  cudaCheck(cudaMemcpy(host_buffer,
+  CHECK_CUDART( cudaMemcpy(host_buffer,
 		       g,
 		       SIZE,
-		       cudaMemcpyDeviceToHost),domain,"MemInfo_uy");
+		       cudaMemcpyDeviceToHost) );
   mpiCheck(wrte_parallel_float(path.goutput,
 			       (float *)host_buffer,
 			       domain.nx,
@@ -53,10 +53,10 @@ void writeData(float2* ddv,float2* g, paths_t path, domain_t domain){
 			       domain.rank,
 			       domain.size),"read");
 
-  cudaCheck(cudaMemcpy(host_buffer,
+  CHECK_CUDART( cudaMemcpy(host_buffer,
 		       ddv,
 		       SIZE,
-		       cudaMemcpyDeviceToHost),domain,"MemInfo_uy");
+		       cudaMemcpyDeviceToHost) );
   mpiCheck(wrte_parallel_float(path.ddvoutput,
 			       (float *)host_buffer,
 			       domain.nx,
@@ -84,14 +84,14 @@ void genRandData(float2* ddv, float2* g, float F, domain_t domain){
     host_buffer[i].y=0.5f*F*((rand()%NM)/NM-1.0f);
   }
 	
-  cudaCheck(cudaMemcpy(g,host_buffer,SIZE,cudaMemcpyHostToDevice),domain,"MemInfo_uy");
+  CHECK_CUDART( cudaMemcpy(g,host_buffer,SIZE,cudaMemcpyHostToDevice) );
 	
   for(int i=0;i<NXSIZE*NZ*NY;i++){
     host_buffer[i].x=0.5f*F*((rand()%NM)/NM-1.0f);
     host_buffer[i].y=0.5f*F*((rand()%NM)/NM-1.0f);
   }
 	
-  cudaCheck(cudaMemcpy(ddv,host_buffer,SIZE,cudaMemcpyHostToDevice),domain,"MemInfo_uy");
+  CHECK_CUDART( cudaMemcpy(ddv,host_buffer,SIZE,cudaMemcpyHostToDevice) );
 	
   return;
 	

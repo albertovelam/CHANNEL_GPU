@@ -6,7 +6,7 @@
 
 static __global__ void calcReynolds(float2* dv,float2* ux,float2* uy,domain_t domain)
 {
-	
+/*	
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   int k = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -16,10 +16,15 @@ static __global__ void calcReynolds(float2* dv,float2* ux,float2* uy,domain_t do
   // [i,k,j][NX,NZ,NY]	
 
   int h=i*NY*NZ+k*NY+j;
-
+*/
   float N2=(float)NX*(2*NZ-2);
 
-  if (i<NXSIZE && j<NY && k<NZ)
+//  if (i<NXSIZE && j<NY && k<NZ)
+  int h = blockIdx.x * blockDim.x + threadIdx.x;
+//  int j = h%NY;
+   int i = h/(NY*NZ);
+   int k = (h-i*NY*NZ)/NY;
+  if(h<NXSIZE*NY*NZ)
     {
 	
 
@@ -55,7 +60,7 @@ static __global__ void calcReynolds(float2* dv,float2* ux,float2* uy,domain_t do
 static __global__ void calcRMS(float2* dv,float2* ux,domain_t domain)
 {
 	
-	
+/*
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   int k = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -65,10 +70,15 @@ static __global__ void calcRMS(float2* dv,float2* ux,domain_t domain)
   // [i,k,j][NX,NZ,NY]	
 
   int h=i*NY*NZ+k*NY+j;
-
+*/
   float N2=(float)NX*(2*NZ-2);
 
-  if (i<NXSIZE && j<NY && k<NZ)
+//  if (i<NXSIZE && j<NY && k<NZ)
+  int h = blockIdx.x * blockDim.x + threadIdx.x;
+//  int j = h%NY;
+  int i = h/(NY*NZ);
+  int k = (h-i*NY*NZ)/NY;
+  if(h<NXSIZE*NY*NZ)
     {
 	
 
@@ -146,9 +156,9 @@ static __global__ void calcRMS(float2* dv,float2* ux,domain_t domain)
 
 /////////////////////Funciones/////////////////////////////////////
 
-static dim3 threadsPerBlock;
-static dim3 blocksPerGrid;
-static int threadsPerBlock_in=16;
+//static dim3 threadsPerBlock;
+//static dim3 blocksPerGrid;
+//static int threadsPerBlock_in=16;
 static cudaError_t ret;
 
 static FILE* fp1;
@@ -160,15 +170,21 @@ float sum[NY];
 
 void calcSt(float2* dv,float2* u,float2* v,float2* w, domain_t domain, paths_t path){
   char dummy[100];
+/*
   threadsPerBlock.x=THREADSPERBLOCK_IN;
   threadsPerBlock.y=THREADSPERBLOCK_IN;
 
 
   blocksPerGrid.x=NXSIZE/threadsPerBlock.x;
   blocksPerGrid.y=NZ*NY/threadsPerBlock.y;
+*/
+
+  dim3 grid,block;
+  block.x = 128;
+  grid.x = (NXSIZE*NY*NZ + block.x - 1)/block.x;
 
 
-  int N2=NX*(2*NZ-2);
+  //int N2=NX*(2*NZ-2);
 
   strcpy(dummy,path.path);
   strcat(dummy,"RSTRSS.dat");
@@ -189,7 +205,7 @@ void calcSt(float2* dv,float2* u,float2* v,float2* w, domain_t domain, paths_t p
 
 
   //REYNOLD STRESSES
-  calcReynolds<<<blocksPerGrid,threadsPerBlock>>>(dv,u,v,domain);
+  calcReynolds<<<grid,block>>>(dv,u,v,domain);
   kernelCheck(ret,domain,"Wkernel");
 
   sumElementsComplex(dv,sum,domain);
@@ -201,7 +217,7 @@ void calcSt(float2* dv,float2* u,float2* v,float2* w, domain_t domain, paths_t p
 	
   //URMS
 
-  calcRMS<<<blocksPerGrid,threadsPerBlock>>>(dv,u,domain);
+  calcRMS<<<grid,block>>>(dv,u,domain);
   kernelCheck(ret,domain,"Wkernel");
 	
 
@@ -212,7 +228,7 @@ void calcSt(float2* dv,float2* u,float2* v,float2* w, domain_t domain, paths_t p
 	
   //VRMS
 
-  calcRMS<<<blocksPerGrid,threadsPerBlock>>>(dv,v,domain);
+  calcRMS<<<grid,block>>>(dv,v,domain);
   kernelCheck(ret,domain,"Wkernel");
 
 
@@ -223,7 +239,8 @@ void calcSt(float2* dv,float2* u,float2* v,float2* w, domain_t domain, paths_t p
 
   //WRMS
 
-  calcRMS<<<blocksPerGrid,threadsPerBlock>>>(dv,w,domain);
+  calcRMS<<<grid,block>>>(dv,w,domain);
+
   kernelCheck(ret,domain,"Wkernel");
 
   sumElementsComplex(dv,sum,domain);

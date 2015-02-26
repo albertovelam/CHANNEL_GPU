@@ -4,7 +4,7 @@
 #include <cuda_runtime.h>
 #include <cuda_runtime_api.h>
 
-//#include <cusparse_v2.h> 
+//#include <cusparse_v2.h>
 #include <cublas_v2.h>
 #include <cufft.h>
 #include <math.h>
@@ -44,6 +44,7 @@ typedef struct paths_t{
   char umeanoutput[100];
   char path[100];
   int freq_stats;
+  int freq_print;
   int nsteps;
 } paths_t;
 
@@ -56,16 +57,16 @@ typedef struct paths_t{
 
 // TODO: make that configurable too.
 #define LY 2.0f
-#define PI 3.14159265358979
+#define DELTA_Y (2.0f/(NY-1))
+#define PI 3.14159265f
 #define PI2 (2.0f*PI)
-
-#define DELTA_Y  (2.0f/(NY-1))
 #define LX domain.lx
 #define LZ domain.lz
 
 //Reynolds number and bulk velocity
 #define REYNOLDS domain.reynolds
 #define QVELOCITY domain.massflux
+
 
 //MPI number of process
 #define MPISIZE domain.size
@@ -108,6 +109,17 @@ extern cudaEvent_t events[1000];
   } \
 } while(0)
 
+/*
+  }else{ \
+    res = cudaGetLastError(); \
+  if(res != cudaSuccess) { \
+    fprintf(stderr, "Rank: %d Node: %s GPU: %s CUDART: %s = %d (%s) at (%s:%d)\n", RANK, host_name, mybus, #x, res, cudaGetErrorString(res),__FILE__,__LINE__); \
+    exit(1); \
+  } \
+  } \
+} while(0)
+*/
+
 #define CHECK_CUBLAS(x) do { \
   cublasStatus_t cublasStatus = (x); \
   if(cublasStatus != CUBLAS_STATUS_SUCCESS) { \
@@ -125,6 +137,15 @@ extern cudaEvent_t events[1000];
   } \
 } while(0)
 #endif
+
+#define CHECK_CUFFT(x) do { \
+  cufftResult cufftStatus = (x); \
+  if(cufftStatus != CUFFT_SUCCESS) { \
+    fprintf(stderr, "Rank: %d Node: %s GPU: %s CUFFT: %s = %d at (%s:%d)\n",RANK, host_name, mybus, #x, cufftStatus,__FILE__,__LINE__); \
+    exit(1); \
+  } \
+} while(0)
+
 
 //#define USE_NVTX
 #ifdef USE_NVTX
@@ -151,7 +172,7 @@ const int num_colors4 = sizeof(colors4)/sizeof(uint32_t);
 
 
 #define START_RANGE(name,cid) { \
-        cudaDeviceSynchronize(); \
+        CHECK_CUDART( cudaDeviceSynchronize() ); \
         int color_id = cid; \
         color_id = color_id%num_colors4;\
         nvtxEventAttributes_t eventAttrib = {0}; \
@@ -164,7 +185,7 @@ const int num_colors4 = sizeof(colors4)/sizeof(uint32_t);
         nvtxRangePushEx(&eventAttrib); \
 }
 #define END_RANGE { \
-        cudaDeviceSynchronize(); \
+        CHECK_CUDART( cudaDeviceSynchronize() ); \
         nvtxRangePop(); \
 }
 #else
@@ -264,7 +285,7 @@ void writeU(char*);
 void readU(char*);
 
 void meanURKstep_1(int in, domain_t domain);
-void meanURKstep_2(float dt, int in, domain_t domain, paths_t path);
+void meanURKstep_2(float dt, int in, domain_t domain, int counter, paths_t path);
 
 void writeUmeanT(float2* u_r);
 
@@ -374,10 +395,10 @@ extern void calcRotor12(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,f
 //Check
 
 extern void kernelCheck( cudaError_t error, domain_t domain, const char* function);
-extern void cufftCheck( cufftResult error, domain_t domain, const char* function );
+//extern void cufftCheck( cufftResult error, domain_t domain, const char* function );
 //extern void cusparseCheck( cusparseStatus_t error, domain_t domain, const char* function );
-extern void cublasCheck(cublasStatus_t error, domain_t domain, const char* function);
-extern void cudaCheck( cudaError_t error, domain_t domain, const char* function);
+//extern void cublasCheck(cublasStatus_t error, domain_t domain, const char* function);
+//extern void cudaCheck( cudaError_t error, domain_t domain, const char* function);
 extern void mpiCheck( int error, const char* function);
 
 //Bilaplacian

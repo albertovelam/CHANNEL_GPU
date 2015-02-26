@@ -157,9 +157,9 @@ if(domain.rank==0){
 }
     
 #ifdef USE_CUSPARSE
-	cudaCheck(cudaMalloc(&LDIAG,SIZE_AUX),domain,"malloc");
-	cudaCheck(cudaMalloc(&CDIAG,SIZE_AUX),domain,"malloc");
-	cudaCheck(cudaMalloc(&UDIAG,SIZE_AUX),domain,"malloc");
+	CHECK_CUDART( cudaMalloc(&LDIAG,SIZE_AUX) );
+	CHECK_CUDART( cudaMalloc(&CDIAG,SIZE_AUX) );
+	CHECK_CUDART( cudaMalloc(&UDIAG,SIZE_AUX) );
 #endif
 	//AUX FOR TRANPOSE
 	//cudaCheck(cudaMalloc(&AUX,SIZE_AUX),domain,"malloc");

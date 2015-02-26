@@ -14,7 +14,7 @@ void kernelCheck( cudaError_t error, domain_t domain, const char* function)
 
 	return;
 }
-
+/*
 extern void cufftCheck( cufftResult error, domain_t domain,  const char* function )
 {
 	if(error != CUFFT_SUCCESS)
@@ -25,6 +25,7 @@ extern void cufftCheck( cufftResult error, domain_t domain,  const char* functio
 		
 	return;
 }  
+*/
 #ifdef USE_CUSPARSE
 extern void cusparseCheck( cusparseStatus_t error, domain_t domain,  const char* function )
 {
@@ -37,6 +38,7 @@ extern void cusparseCheck( cusparseStatus_t error, domain_t domain,  const char*
 	return;
 }  
 #endif
+/*
 extern void cublasCheck(cublasStatus_t error, domain_t domain, const char* function )
 {
 	if(error !=  CUBLAS_STATUS_SUCCESS)
@@ -61,8 +63,7 @@ extern void cudaCheck( cudaError_t error, domain_t domain, const char* function)
 
 	return;
 }
-
-
+*/
 
 extern void mpiCheck( int error, const char* function)
 {

@@ -203,7 +203,7 @@ static void forcing(float2* u, domain_t domain){
   //Calc caudal
   float Qt=0.0f;
 
-  for(int j=10;j<NY-1;j++){
+  for(int j=0;j<NY-1;j++){
     float dy=Fmesh((j+1)*DELTA_Y-1.0f)-Fmesh(j*DELTA_Y-1.0f);
     Qt+=0.5f*(u[j+1].x+u[j].x)*dy;
   }	
@@ -460,8 +460,8 @@ END_RANGE_ASYNC
   return;
 
 }
-//static int printnow=0;
-void meanURKstep_2(float dt, int in, domain_t domain, paths_t path){
+
+void meanURKstep_2(float dt, int in, domain_t domain,int counter,  paths_t path){
 START_RANGE_ASYNC("meanURKstep_2",34)
 
   //End
@@ -486,6 +486,7 @@ START_RANGE_ASYNC("meanURKstep_2",34)
 	
   if(in==2){
 
+
     float Umean=QVELOCITY/LY;
     float nu=1.0f/REYNOLDS;
     float N2=NX*(2*NZ-2);
@@ -493,12 +494,9 @@ START_RANGE_ASYNC("meanURKstep_2",34)
     char thispath[100];
 
     //Statistics
-
-//    printf("(tau_1,tau_2)=(%e,%e)",Utau_1.x,Utau_2.x);	
-//if(printnow++%10==0){
-//    printnow=1;
     u_tau=sqrt(0.5f*(pow(Utau_1.x,2.0f)+pow(Utau_2.x,2.0f)));
 
+ if(counter%path.freq_print==0){
     printf("****MEAN_PROFILE_STATISTICS****");
     printf("\n(tau_1,tau_2)=(%e,%e)",Utau_1.x,Utau_2.x);
     printf("\n(RE_t,RE_c,RE_m)=(%e,%e,%e)",u_tau*LY*0.5f/nu,u_host[NY/2].x*0.5f*LY/(nu*N2),1.0f/nu);
@@ -507,8 +505,10 @@ START_RANGE_ASYNC("meanURKstep_2",34)
     printf("\nC_f=%e",2.0f*u_tau/(Umean*Umean));
     printf("\n(Um+,Ux+,Um/Uc)=(%f,%f,%f)",Umean/u_tau,u_host[NY/2].x/(u_tau*N2),Umean*N2/u_host[NY/2].x);
     printf("\n");
-//}
-/*    
+ }
+
+   if (counter%path.freq_stats==0){
+
     strcpy(thispath, path.path);
     strcat(thispath,"MEANPROFILE.dat");
     fp =fopen(thispath,"a");
@@ -556,7 +556,7 @@ START_RANGE_ASYNC("meanURKstep_2",34)
     fclose(fp2);
     fclose(fp3);
     fclose(fp4);
-*/	
+  }
 
   }
 	

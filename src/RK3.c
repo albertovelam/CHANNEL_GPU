@@ -62,16 +62,15 @@ return;
 void calcVdV(float2* ddv,float2* v,float2* dv, domain_t domain){
 START_RANGE("calcVdV",2)
 
-  cudaCheck(cudaMemcpy(v,ddv,SIZE,cudaMemcpyDeviceToDevice),domain,"MemInfo_RK3_1");
+  CHECK_CUDART( cudaMemcpy(v,ddv,SIZE,cudaMemcpyDeviceToDevice) );
   hemholztSolver_double(v,domain);
-  cudaCheck(cudaMemcpy(dv,v,SIZE,cudaMemcpyDeviceToDevice),domain,"MemInfo1_RK3_2");
+  CHECK_CUDART( cudaMemcpy(dv,v,SIZE,cudaMemcpyDeviceToDevice) );
   deriv_Y_HO_double(dv,domain);
 
 END_RANGE
   return;
 }
-//static int printnow=0;
-static float calcDt(float2* u_x,float2* u_y,float2* u_z,float2* ddv,float2* g, domain_t domain){
+static float calcDt(float2* u_x,float2* u_y,float2* u_z,float2* ddv,float2* g, domain_t domain, int counter,  paths_t path){
 START_RANGE("calcDt",3)
 
   float N2=NX*(2*NZ-2);
@@ -100,14 +99,13 @@ START_RANGE("calcDt",3)
   float dt_v=CFL*REYNOLDS/(1.0f/(DELTA_Y*DELTA_Y)+(1.0f/3.0f*NX/LX)*(1.0f/3.0f*NX/LX)+(1.0f/3.0f*NZ/LZ)*(1.0f/3.0f*NZ/LZ));
   
   if(domain.rank==0){
-//if(printnow++%10==0){
-//printnow=1;
+if(counter%path.freq_print==0){
     printf("*****RK_STATISTICS****");
     printf("\nmax_V=(%e,%e,%e)",umax[0]/N2,umax[1]/N2,umax[2]/N2);
     printf("\nmax_(ddV,G)=(%e,%e)",gmax[0],gmax[1]);
     printf("\n(dt_c,dt_v)=(%f,%f)",dt,dt_v);
     printf("\n");
-//}		
+}		
   }
   
   //Print
@@ -143,12 +141,13 @@ double timer=MPI_Wtime();
 START_RANGE("RKsubstep",n_step+3)
       //First step		
       RKstep_1(ddv,g,ddv_w,g_w,R_ddv,R_g,dt,n_step,domain);	
-      
+
       //Mean step
       if(domain.rank==0){
 	meanURKstep_1(n_step,domain);
       }
 END_RANGE 
+
       //Calc non linear terms stored in R_1 and R_2
       calcNL(ddv,g,R_ddv,R_g,u,v,w,dv,n_step,counter,domain,path);
       
@@ -156,12 +155,12 @@ END_RANGE
       if(n_step==0){
 END_RANGE
 END_RANGE
-	dt_2=calcDt(u,v,w,ddv,g,domain);	
+	dt_2=calcDt(u,v,w,ddv,g,domain,counter,path);	
       }
       
       //Second step
       if(domain.rank==0){
-	meanURKstep_2(dt,n_step,domain,path);
+	meanURKstep_2(dt,n_step,domain,counter,path);
       }
 if(n_step==0){
 END_RANGE     
@@ -177,8 +176,8 @@ END_RANGE
       bilaplaSolver_double(ddv_w,v,dv,betha[n_step],dt,domain);	
       
       //Copy to final buffer		
-      cudaCheck(cudaMemcpy(ddv,ddv_w,SIZE,cudaMemcpyDeviceToDevice),domain,"MemInfo_RK3_3");
-      cudaCheck(cudaMemcpy(g,g_w,SIZE,cudaMemcpyDeviceToDevice),domain,"MemInfo_RK3_4");
+      CHECK_CUDART( cudaMemcpy(ddv,ddv_w,SIZE,cudaMemcpyDeviceToDevice) );
+      CHECK_CUDART( cudaMemcpy(  g,  g_w,SIZE,cudaMemcpyDeviceToDevice) );
       dealias(ddv,domain);
       dealias(v,domain);
       dealias(g,domain);
@@ -203,10 +202,10 @@ END_RANGE
 timer = MPI_Wtime()-timer;
     
     if(domain.rank==0){
-//if((counter-1)%10==0){
+if((counter-1)%path.freq_print==0){
       printf("\033[0;31m*** wall_time: %1.6f sec (time,counter)=(%f,%d)\033[0m\n\n",timer,time_elapsed,counter);
       //printf("\n(time,counter)=(%f,%d)",time_elapsed,counter);
-//}
+}
     }
 END_RANGE    
   }

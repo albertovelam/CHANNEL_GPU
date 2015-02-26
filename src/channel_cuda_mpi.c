@@ -15,7 +15,7 @@ static int MPIErr;
 void setTransposeCudaMpi(domain_t domain){
 
 
-  cublasCheck(cublasCreate(&cublasHandle),domain,"Cre_Transpose");
+  CHECK_CUBLAS( cublasCreate(&cublasHandle) );
   
   alpha[0].x=1.0f;
   alpha[0].y=0.0f;
@@ -37,7 +37,7 @@ void transpose(float2* u_2,const float2* u_1,int Nx,int Ny, domain_t domain){
 START_RANGE("transpose",25)
 	//Transpuesta de [i,k,j][NX,NZ,NY] a -----> [j,i,k][NY,NX,NZ]
   
-  cublasCheck(cublasCgeam(cublasHandle,CUBLAS_OP_T,CUBLAS_OP_T,Ny,Nx,alpha,(const float2*)u_1,Nx,0,0,Nx,(float2*)u_2,Ny),domain,"Tr_1");
+  CHECK_CUBLAS( cublasCgeam(cublasHandle,CUBLAS_OP_T,CUBLAS_OP_T,Ny,Nx,alpha,(const float2*)u_1,Nx,0,0,Nx,(float2*)u_2,Ny) );
   //printf("\n%f,%f",alpha[0].x,alpha[0].y);
 END_RANGE
   return;
@@ -50,13 +50,9 @@ END_RANGE
 void transposeBatched(float2* u_2,const float2* u_1,int Nx,int Ny,int batch, domain_t domain){
 START_RANGE("transposedBatched",26)
   //Transpuesta de [i,k,j][NX,NZ,NY] a -----> [j,i,k][NY,NX,NZ]
-  
   for(int nstep=0;nstep<batch;nstep++){
-    
     int stride=nstep*Nx*Ny;
-    
-    cublasCheck(cublasCgeam(cublasHandle,CUBLAS_OP_T,CUBLAS_OP_T,Ny,Nx,alpha,(const float2*)u_1+stride,Nx,0,0,Nx,(float2*)u_2+stride,Ny),domain,"Tr_2");
-    
+    CHECK_CUBLAS( cublasCgeam(cublasHandle,CUBLAS_OP_T,CUBLAS_OP_T,Ny,Nx,alpha,(const float2*)u_1+stride,Nx,0,0,Nx,(float2*)u_2+stride,Ny) );
   }	
 END_RANGE
 	//printf("\n%f,%f",alpha[0].x,alpha[0].y);
@@ -78,7 +74,7 @@ START_RANGE("transposeXYZ2YZX",27)
   //COPY TO HOST
   cudaCheck(cudaMemcpy((float2*)aux_host1,(float2*)u1,size,cudaMemcpyDeviceToHost),domain,"copy");
 */
-  trans_zyx_to_zxy(u1, (float2*)AUX, 0/*compute_stream*/,domain);
+  trans_zxy_to_zyx(u1, (float2*)AUX, 0/*compute_stream*/,domain);
 #ifdef USE_GPU_MPI
 START_RANGE("MPI",1)
   MPIErr = MPI_Alltoall((float2*)AUX,Nz*myNx*myNy,MPI_DOUBLE,
@@ -88,7 +84,7 @@ END_RANGE
   mpiCheck(MPIErr,"transpoze");
 
 #else
-  CHECK_CUDART(cudaMemcpy((float2*)aux_host1,(float2*)AUX,size,cudaMemcpyDeviceToHost));
+  CHECK_CUDART( cudaMemcpy((float2*)aux_host1,(float2*)AUX,size,cudaMemcpyDeviceToHost) );
   
 START_RANGE("MPI",1)	
   MPIErr = MPI_Alltoall(aux_host1,Nz*myNx*myNy,MPI_DOUBLE,
@@ -98,7 +94,7 @@ END_RANGE
   mpiCheck(MPIErr,"transpoze");
   
   //COPY TO DEVICE
-  cudaCheck(cudaMemcpy((float2*)AUX,(float2*)aux_host2,size,cudaMemcpyHostToDevice),domain,"copy");
+  CHECK_CUDART( cudaMemcpy((float2*)AUX,(float2*)aux_host2,size,cudaMemcpyHostToDevice) );
 #endif
   //Transpose [sizeMpi,myNy,myNx,Nz] ---> [myNy,Nz,sizeMpi,myNx]
 /*  
@@ -125,7 +121,7 @@ START_RANGE("transposeYZX2XYZ",28)
   trans_yzx_to_zyx_yblock(u1, (float2*)AUX, 0/*compute_stream*/, domain);	
 
   //COPY TO HOST
-  cudaCheck(cudaMemcpy((float2*)aux_host1,(float2*)AUX,size,cudaMemcpyDeviceToHost),domain,"copy");
+  CHECK_CUDART( cudaMemcpy((float2*)aux_host1,(float2*)AUX,size,cudaMemcpyDeviceToHost) );
 START_RANGE("MPI",1)	
   /* Communications */
   MPIErr = MPI_Alltoall(aux_host1,Nz*myNx*myNy,MPI_DOUBLE,
@@ -145,7 +141,7 @@ END_RANGE
   transposeBatched(u1,(const float2*)AUX,NY,Nz,myNx,domain);
 */
   CHECK_CUDART(cudaMemcpy((float2*)AUX,(float2*)aux_host2,size,cudaMemcpyHostToDevice));
-  trans_zxy_to_zyx((float2*)AUX, u1, 0/*compute_stream*/,domain);
+  trans_zyx_to_zxy((float2*)AUX, u1, 0/*compute_stream*/,domain);
 
 END_RANGE  
   return;

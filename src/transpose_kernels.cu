@@ -31,26 +31,26 @@ static void __global__ trans_zyx_yblock_to_yzx_kernel(float2* input, float2* out
 }
 
 
-static void __global__ trans_zyx_to_zxy_kernel(float2* input, float2* output, domain_t domain)
+static void __global__ trans_zxy_to_zyx_kernel(float2* input, float2* output, domain_t domain)
 {
   int k_ot = blockIdx.x*blockDim.x + threadIdx.x;
   int j_ot = blockIdx.y*blockDim.y + threadIdx.y;
   int i    = blockIdx.z;
   int index_ot = j_ot*gridDim.z*NZ + i*NZ + k_ot;
-  int index_in = i*NY*NZ + j_ot*NZ + k_ot;
-  if(j_ot<NY && k_ot<NZ){
+  int index_in = i*NX*NZ + j_ot*NZ + k_ot;
+  if(j_ot<NX && k_ot<NZ){
     output[index_ot] = input[index_in];
   }
 }
 
-static void __global__ trans_zxy_to_zyx_kernel(float2* input, float2* output, domain_t domain)
+static void __global__ trans_zyx_to_zxy_kernel(float2* input, float2* output, domain_t domain)
 {
   int k_in = blockIdx.x*blockDim.x + threadIdx.x;
   int j_in = blockIdx.y*blockDim.y + threadIdx.y;
   int i    = blockIdx.z;
   int index_in = j_in*gridDim.z*NZ + i*NZ + k_in;
-  int index_ot = i*NY*NZ + j_in*NZ + k_in;
-  if(j_in<NY && k_in<NZ){
+  int index_ot = i*NX*NZ + j_in*NZ + k_in;
+  if(j_in<NX && k_in<NZ){
     output[index_ot] = input[index_in];
   }
 }
@@ -258,29 +258,11 @@ extern void trans_zyx_yblock_to_yzx(float2* input, float2* output,cudaStream_t s
         threadsPerBlock.y=THREADSPERBLOCK_IN;
 
         blocksPerGrid.y=(NZ+threadsPerBlock.x-1)/threadsPerBlock.x;
-        blocksPerGrid.x=NY/threadsPerBlock.y;
+        blocksPerGrid.x=(NY+threadsPerBlock.y-1)/threadsPerBlock.y;
         blocksPerGrid.z=NXSIZE;
 
 
         trans_zyx_yblock_to_yzx_kernel<<<blocksPerGrid,threadsPerBlock,0,stream>>>(input,output,domain);
-        //kernelCheck(RET,"rk_substep",1);
-
-        return;
-}
-
-
-extern void trans_zyx_to_zxy(float2* input, float2* output,cudaStream_t stream,domain_t domain)
-{
-
-        threadsPerBlock.x=THREADSPERBLOCK_IN;
-        threadsPerBlock.y=THREADSPERBLOCK_IN;
-
-        blocksPerGrid.x=(NZ+threadsPerBlock.x-1)/threadsPerBlock.x;
-        blocksPerGrid.y=NY/threadsPerBlock.y;
-        blocksPerGrid.z=NXSIZE;
-
-
-        trans_zyx_to_zxy_kernel<<<blocksPerGrid,threadsPerBlock,0,stream>>>(input,output,domain);
         //kernelCheck(RET,"rk_substep",1);
 
         return;
@@ -294,11 +276,29 @@ extern void trans_zxy_to_zyx(float2* input, float2* output,cudaStream_t stream,d
         threadsPerBlock.y=THREADSPERBLOCK_IN;
 
         blocksPerGrid.x=(NZ+threadsPerBlock.x-1)/threadsPerBlock.x;
-        blocksPerGrid.y=NY/threadsPerBlock.y;
-        blocksPerGrid.z=NXSIZE;
+        blocksPerGrid.y=(NX+threadsPerBlock.y-1)/threadsPerBlock.y;
+        blocksPerGrid.z=NYSIZE;
 
 
         trans_zxy_to_zyx_kernel<<<blocksPerGrid,threadsPerBlock,0,stream>>>(input,output,domain);
+        //kernelCheck(RET,"rk_substep",1);
+
+        return;
+}
+
+
+extern void trans_zyx_to_zxy(float2* input, float2* output,cudaStream_t stream,domain_t domain)
+{
+
+        threadsPerBlock.x=THREADSPERBLOCK_IN;
+        threadsPerBlock.y=THREADSPERBLOCK_IN;
+
+        blocksPerGrid.x=(NZ+threadsPerBlock.x-1)/threadsPerBlock.x;
+        blocksPerGrid.y=(NX+threadsPerBlock.y-1)/threadsPerBlock.y;
+        blocksPerGrid.z=NYSIZE;
+
+
+        trans_zyx_to_zxy_kernel<<<blocksPerGrid,threadsPerBlock,0,stream>>>(input,output,domain);
         //kernelCheck(RET,"rk_substep",1);
 
         return;
@@ -312,7 +312,7 @@ extern void trans_yzx_to_zxy(float2* input, float2* output,cudaStream_t stream,d
         threadsPerBlock.y=THREADSPERBLOCK_IN;
 
         blocksPerGrid.x=(NZ+threadsPerBlock.x-1)/threadsPerBlock.x;
-        blocksPerGrid.y=NY/threadsPerBlock.y;
+        blocksPerGrid.y=(NY+threadsPerBlock.y-1)/threadsPerBlock.y;
         blocksPerGrid.z=NXSIZE;
 
         trans_yzx_to_zxy_kernel<<<blocksPerGrid,threadsPerBlock,0,stream>>>(input,output,domain);
@@ -329,7 +329,7 @@ extern void trans_zxy_to_yzx(float2* input, float2* output,cudaStream_t stream,d
         threadsPerBlock.y=THREADSPERBLOCK_IN;
 
         blocksPerGrid.x=(NZ+threadsPerBlock.x-1)/threadsPerBlock.x;
-        blocksPerGrid.y=NY/threadsPerBlock.y;
+        blocksPerGrid.y=(NY+threadsPerBlock.y-1)/threadsPerBlock.y;
         blocksPerGrid.z=NXSIZE;
 
 
@@ -348,7 +348,7 @@ extern void trans_zyx_to_yzx(float2* input, float2* output,cudaStream_t stream,d
         threadsPerBlock.y=THREADSPERBLOCK_IN;
 
         blocksPerGrid.x=(NZ+threadsPerBlock.x-1)/threadsPerBlock.x;
-        blocksPerGrid.y=NY/threadsPerBlock.y;
+        blocksPerGrid.y=(NY+threadsPerBlock.y-1)/threadsPerBlock.y;
         blocksPerGrid.z=NXSIZE;
 
 
@@ -366,7 +366,7 @@ extern void trans_yzx_to_zyx(float2* input, float2* output,cudaStream_t stream,d
         threadsPerBlock.y=THREADSPERBLOCK_IN;
 
         blocksPerGrid.y=(NZ+threadsPerBlock.x-1)/threadsPerBlock.x;
-        blocksPerGrid.x=NY/threadsPerBlock.y;
+        blocksPerGrid.x=(NY+threadsPerBlock.y-1)/threadsPerBlock.y;
         blocksPerGrid.z=NXSIZE;
 
         //cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
@@ -385,7 +385,7 @@ extern void trans_yzx_to_zyx_yblock(float2* input, float2* output,cudaStream_t s
         threadsPerBlock.y=THREADSPERBLOCK_IN;
 
         blocksPerGrid.y=(NZ+threadsPerBlock.x-1)/threadsPerBlock.x;
-        blocksPerGrid.x=NY/threadsPerBlock.y;
+        blocksPerGrid.x=(NY+threadsPerBlock.y-1)/threadsPerBlock.y;
         blocksPerGrid.z=NXSIZE;
 
 
