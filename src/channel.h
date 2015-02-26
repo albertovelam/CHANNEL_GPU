@@ -42,6 +42,8 @@ typedef struct paths_t{
   char ddvoutput[100];
   char umeaninput[100];
   char umeanoutput[100];
+  char wmeaninput[100];
+  char wmeanoutput[100];
   char path[100];
   int freq_stats;
   int freq_print;
@@ -276,13 +278,17 @@ void calcNL(float2* ddv,float2* g,float2* R_ddv,float2* R_g,
 
 void setRKmean(void);
 
-void readNmean(float2* u, domain_t domain);
-void writeUmean(float2* u, domain_t domain);
+void readNmean(float2* u, float2* w, domain_t domain);
+void writeUmean(float2* u,float2* w, domain_t domain);
 void readUmean(float2* u);
 void readUtau(float2* wz, domain_t domain);	
 
 void writeU(char*);
 void readU(char*);
+
+void writeW(char*);
+void readW(char*);
+
 
 void meanURKstep_1(int in, domain_t domain);
 void meanURKstep_2(float dt, int in, domain_t domain, int counter, paths_t path);

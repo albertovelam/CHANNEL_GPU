@@ -15,7 +15,7 @@ START_RANGE("calcNL",21)
   
   //Introduce <u> in u_x
   if(domain.rank==0){
-    writeUmean(u, domain);
+    writeUmean(u,w,domain);
   }
 
 //  if(ii==0){
@@ -27,7 +27,7 @@ START_RANGE("calcNL",21)
 
   //read mean R for computation of mean profile
   if(domain.rank==0){	
-    readNmean(R_ddv, domain);
+    readNmean(R_ddv, R_g, domain);
   }
   
   //Calculate Hg and Hv

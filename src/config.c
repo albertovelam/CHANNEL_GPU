@@ -45,6 +45,10 @@ void read_filenames_from_config(paths_t *path, config_t *config){
   strcpy(path->umeaninput,dummy);
   config_lookup_string(config, "application.output.UMEAN",&dummy);
   strcpy(path->umeanoutput,dummy);
+  config_lookup_string(config, "application.input.WMEAN",&dummy);
+  strcpy(path->wmeaninput,dummy);
+  config_lookup_string(config, "application.output.WMEAN",&dummy);
+  strcpy(path->wmeanoutput,dummy);
   config_lookup_string(config, "application.PATH",&dummy);
   strcpy(path->path,dummy);
   config_lookup_int(config, "application.FREQ_STATS",&(*path).freq_stats);
