@@ -546,7 +546,7 @@ END_RANGE_ASYNC
 
 }
 //static int printnow=0;
-void meanURKstep_2(float dt, int in, domain_t domain, paths_t path){
+void meanURKstep_2(float dt, int in, domain_t domain, int counter, paths_t path){
 START_RANGE_ASYNC("meanURKstep_2",34)
 
   //End
@@ -580,67 +580,72 @@ START_RANGE_ASYNC("meanURKstep_2",34)
 
     //Statistics
 
-    printf("\n(tau_1,tau_2)=(%e,%e)",Utau_1.x,Utau_2.x);	
+
 
     u_tau=sqrt(0.5*(pow(Utau_1.x,2.0)+pow(Utau_2.x,2.0)));
 
-    printf("\n****MEAN_PROFILE_STATISTICS****");
-	printf("\nNu=%e",nu);
-    printf("\n(RE_t,RE_c,RE_m)=(%e,%e,%e)",u_tau*LY*0.5/nu,u_host[NY/2].x*0.5*LY/(nu*N2),Umean*LY/nu);
-    printf("\n(Dx+,Dz+)=(%e,%e)",(3.0/2.0)*u_tau*LX/(nu*NX),(3.0/2.0)*u_tau*LZ/(nu*(2*NZ-2)));
-    printf("\nDy+(max,min)=(%f,%f)",u_tau*(Fmesh((NY/2+1)*DELTA_Y-1.0)-Fmesh((NY/2)*DELTA_Y-1.0))/(nu),u_tau*(Fmesh(1*DELTA_Y-1.0)-Fmesh(0*DELTA_Y-1.0))/(nu));	
-    printf("\nC_f=%e",2.0*u_tau/(Umean*Umean));
-    printf("\n(Um+,Ux+,Um/Uc)=(%f,%f,%f)",Umean/u_tau,u_host[NY/2].x/(u_tau*N2),Umean*N2/u_host[NY/2].x);
-    printf("\n");
-    /*
-    strcpy(thispath, path.path);
-    strcat(thispath,"MEANPROFILE.dat");
-    fp =fopen(thispath,"a");
-    
-    strcpy(thispath, path.path);
-    strcat(thispath,"MEANREAYNOLDS.dat");
-    fp1=fopen(thispath,"a");
-
-    strcpy(thispath, path.path);
-    strcat(thispath,"UTAU.dat");
-    fp2=fopen(thispath,"a");
-
-    strcpy(thispath, path.path);
-    strcat(thispath,"STATISTICS.dat");
-    fp3=fopen(thispath,"a");
-
-    strcpy(thispath, path.path);
-    strcat(thispath,"RESOLUTION.dat");
-    fp4=fopen(thispath,"a");
-	
-    for(int j=0;j<NY;j++){
-      fprintf(fp," %e",u_host[j].x);
+    if (counter%path.freq_print == 0){
+      printf("\n****MEAN_PROFILE_STATISTICS****");
+      printf("\n(tau_1,tau_2)=(%e,%e)",Utau_1.x,Utau_2.x);	
+      printf("\nNu=%e",nu);
+      printf("\n(RE_t,RE_c,RE_m)=(%e,%e,%e)",u_tau*LY*0.5/nu,u_host[NY/2].x*0.5*LY/(nu*N2),Umean*LY/nu);
+      printf("\n(Dx+,Dz+)=(%e,%e)",(3.0/2.0)*u_tau*LX/(nu*NX),(3.0/2.0)*u_tau*LZ/(nu*(2*NZ-2)));
+      printf("\nDy+(max,min)=(%f,%f)",u_tau*(Fmesh((NY/2+1)*DELTA_Y-1.0)-Fmesh((NY/2)*DELTA_Y-1.0))/(nu),u_tau*(Fmesh(1*DELTA_Y-1.0)-Fmesh(0*DELTA_Y-1.0))/(nu));	
+      printf("\nC_f=%e",2.0*u_tau/(Umean*Umean));
+      printf("\n(Um+,Ux+,Um/Uc)=(%f,%f,%f)",Umean/u_tau,u_host[NY/2].x/(u_tau*N2),Umean*N2/u_host[NY/2].x);
+      printf("\n");
     }
-    fprintf(fp," \n");
+
+
+    if (counter%path.freq_stats==0){
+      strcpy(thispath, path.path);
+      strcat(thispath,"MEANPROFILE.dat");
+      fp =fopen(thispath,"a");
+      
+      strcpy(thispath, path.path);
+      strcat(thispath,"MEANREAYNOLDS.dat");
+      fp1=fopen(thispath,"a");
+      
+      strcpy(thispath, path.path);
+      strcat(thispath,"UTAU.dat");
+      fp2=fopen(thispath,"a");
+
+      strcpy(thispath, path.path);
+      strcat(thispath,"STATISTICS.dat");
+      fp3=fopen(thispath,"a");
+      
+      strcpy(thispath, path.path);
+      strcat(thispath,"RESOLUTION.dat");
+      fp4=fopen(thispath,"a");
+	
+	for(int j=0;j<NY;j++){
+	  fprintf(fp," %e",u_host[j].x);
+	}
+      fprintf(fp," \n");
     
+      
+      for(int j=0;j<NY;j++){
+	fprintf(fp1," %e",N_host[j].x);
+      }
+      fprintf(fp1," \n");
 	
-    for(int j=0;j<NY;j++){
-      fprintf(fp1," %e",N_host[j].x);
+      fprintf(fp2," %e",u_tau);
+
+      fprintf(fp3,"%e %e %e %e %e %e %e %e ",u_tau*LY*0.5/nu,u_host[NY/2].x*0.5*LY/(nu*N2),1.0/nu,Umean/u_tau,
+	      u_host[NY/2].x/(u_tau*N2),Umean*N2/u_host[NY/2].x,
+	      2.0*u_tau*u_tau/(Umean*Umean),2.0*u_tau*u_tau/(u_host[NY/2].x*u_host[NY/2].x));
+      fprintf(fp3,"\n");
+      
+      fprintf(fp4,"%e %e %e %e",(3.0/2.0)*u_tau*LX/(nu*NX),(3.0/2.0)*u_tau*LZ/(nu*NZ),
+	      u_tau*(Fmesh((NY/2+1)*DELTA_Y-1.0)-Fmesh((NY/2)*DELTA_Y-1.0))/(nu),u_tau*(Fmesh(1*DELTA_Y-1.0)-Fmesh(0*DELTA_Y-1.0))/(nu));
+      fprintf(fp4,"\n");
+	
+      fclose(fp);
+      fclose(fp1);
+      fclose(fp2);
+      fclose(fp3);
+      fclose(fp4);
     }
-    fprintf(fp1," \n");
-	
-    fprintf(fp2," %e",u_tau);
-
-    fprintf(fp3,"%e %e %e %e %e %e %e %e ",u_tau*LY*0.5/nu,u_host[NY/2].x*0.5*LY/(nu*N2),1.0/nu,Umean/u_tau,
-    	    u_host[NY/2].x/(u_tau*N2),Umean*N2/u_host[NY/2].x,
-    	    2.0*u_tau*u_tau/(Umean*Umean),2.0*u_tau*u_tau/(u_host[NY/2].x*u_host[NY/2].x));
-    fprintf(fp3,"\n");
-
-    fprintf(fp4,"%e %e %e %e",(3.0/2.0)*u_tau*LX/(nu*NX),(3.0/2.0)*u_tau*LZ/(nu*NZ),
-    	    u_tau*(Fmesh((NY/2+1)*DELTA_Y-1.0)-Fmesh((NY/2)*DELTA_Y-1.0))/(nu),u_tau*(Fmesh(1*DELTA_Y-1.0)-Fmesh(0*DELTA_Y-1.0))/(nu));
-    fprintf(fp4,"\n");
-	
-    fclose(fp);
-    fclose(fp1);
-    fclose(fp2);
-    fclose(fp3);
-    fclose(fp4);
-	*/
 
   }
 	
