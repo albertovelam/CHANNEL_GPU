@@ -1,26 +1,25 @@
-#include "channel.h"
+#include "../src/channel.h"
 #include <string.h>
 
-int main(argc, char* argv[]){
-  int i;
-  char filenamein[100];
-  char filenameout[100];
-  int Nxold, Nzold, Nznew;
+void interpolate_float(char *, char *, int, int, int, int, int, int);
 
-  if (strcmp(argv[1],'--help') == 0){
+int main(int argc, char* argv[]){
+  int i;
+  int Nxold, Nyold, Nzold;
+
+  if (strcmp(argv[1],"--help") == 0){
     printf("Usage: interpolate input output NXold NYold NZold\n");
   }
+  else{
+    Nxold = atoi(argv[3]);
+    Nyold = atoi(argv[4]);
+    Nzold = atoi(argv[5]);
+    
+    printf("Interpolating from %i,%i,%i, to %i,%i,%i\n", Nxold, Nyold, Nzold, NX, NY, NZ*2);
+    interpolate_float(argv[1],argv[2],Nxold,Nzold,Nyold,NY,NZ*2,NY);
+  }
   
-  strcpy(&filenamein,argv[1]);
-  strcpy(&filenameout,argv[2]);
-  Nxold = *argv[3];
-  Nyold = *argv[4];
-  Nzold = *argv[5];
-
-  printf("Interpolating from %i,%i,%i, to %i,%i,%i\n", NXold, NYold, NZold, NX, NY, NZ*2);
-  xz_interpolate_float(filenamein,filenameout,Nxold,Nyold,Nzold,NY,NX,NZ*2);
-  
-  return 0
+  return 0;
 }
 
 
