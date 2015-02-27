@@ -10,8 +10,8 @@ void readData(float2* ddv, float2* g, paths_t path, domain_t domain){
   mpiCheck(read_parallel_float(path.ginput,
 			       (float *)host_buffer,
 			       domain.nx,
-			       domain.ny,
 			       2*domain.nz,
+			       domain.ny,
 			       domain.rank,
 			       domain.size),"read");	
   CHECK_CUDART( cudaMemcpy(g,host_buffer,SIZE,cudaMemcpyHostToDevice) );
@@ -19,8 +19,8 @@ void readData(float2* ddv, float2* g, paths_t path, domain_t domain){
   mpiCheck(read_parallel_float(path.ddvinput,
 			       (float *)host_buffer,
 			       domain.nx,
-			       domain.ny,
 			       2*domain.nz,
+			       domain.ny,
 			       domain.rank,
 			       domain.size),"read");	
   CHECK_CUDART( cudaMemcpy(ddv,
@@ -48,8 +48,8 @@ void writeData(float2* ddv,float2* g, paths_t path, domain_t domain){
   mpiCheck(wrte_parallel_float(path.goutput,
 			       (float *)host_buffer,
 			       domain.nx,
-			       domain.ny,
 			       2*domain.nz,
+			       domain.ny,
 			       domain.rank,
 			       domain.size),"read");
 
@@ -60,8 +60,8 @@ void writeData(float2* ddv,float2* g, paths_t path, domain_t domain){
   mpiCheck(wrte_parallel_float(path.ddvoutput,
 			       (float *)host_buffer,
 			       domain.nx,
-			       domain.ny,
 			       2*domain.nz,
+			       domain.ny,
 			       domain.rank,
 			       domain.size),"read");	
   
