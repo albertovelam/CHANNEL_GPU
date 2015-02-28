@@ -52,6 +52,8 @@ int main(int argc, char** argv)
   MPI_Bcast(&(path.ddvoutput), 100, MPI_CHAR, 0, MPI_COMM_WORLD);
   MPI_Bcast(&(path.umeaninput), 100, MPI_CHAR, 0, MPI_COMM_WORLD);
   MPI_Bcast(&(path.umeanoutput), 100, MPI_CHAR, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&(path.umeaninput), 100, MPI_CHAR, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&(path.umeanoutput), 100, MPI_CHAR, 0, MPI_COMM_WORLD);
   MPI_Bcast(&(path.path), 100, MPI_CHAR, 0, MPI_COMM_WORLD);
 
   domain.rank = rank;
@@ -132,6 +134,7 @@ int main(int argc, char** argv)
   if(rank == 0){
     if(strcmp(path.umeaninput,"-")!= 0){
       readU(path.umeaninput);
+      readW(path.wmeaninput);
     }
   }
   
@@ -153,6 +156,7 @@ int main(int argc, char** argv)
   
   if(rank==0){
     writeU(path.umeanoutput);
+    writeW(path.wmeanoutput);
     //config_destroy(&config);
   }
 

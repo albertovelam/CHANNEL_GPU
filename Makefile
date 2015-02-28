@@ -24,11 +24,16 @@ $(CPU_OBJECTS): src/%.o: src/%.c
 $(GPU_OBJECTS): src/%.o: src/%.cu
 	$(NVCC) -c $(INCLUDES) $(SIZE) $(PATHS) $(DEBUG)  $< -o $@
 
-tools: interpolator.o
+tools: interpolator.o meanpolator.o
 	$(CC) $(PATHS) $(LIBS) tools/interpolator.o -g -o interpolator.bin
+	$(CC) $(PATHS) $(LIBS) tools/meanpolator.o -g -o meanpolator.bin
 
 interpolator.o:
 	$(CC) $(INCLUDES) $(SIZE) -c tools/interpolator.c -g -o tools/interpolator.o
+
+meanpolator.o:
+	$(CC) $(INCLUDES) $(SIZE) -c tools/meanpolator.c -g -o tools/meanpolator.o
+
 
 clean:
 	rm src/*.o channelMPI.bin
