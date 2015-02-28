@@ -16,7 +16,7 @@ int main(int argc, char* argv[]){
     Nzold = atoi(argv[5]);
     
     printf("Interpolating from %i,%i,%i, to %i,%i,%i\n", Nxold, Nyold, Nzold, NX, NY, NZ*2);
-    interpolate_float(argv[1],argv[2],Nxold,Nzold,Nyold,NY,NZ*2,NY);
+    interpolate_float(argv[1],argv[2],Nxold,Nzold,Nyold,NX,NZ*2,NY);
   }
   
   return 0;
@@ -43,6 +43,7 @@ void interpolate_float(char *filenamein, char *filenameout, int Nx,
   int idx1, idx2;
   float w;
   float *aux, *aux1;
+  int counti, countj;
   
   aux = (float *) malloc(Ny*Nz*sizeof(float));
   aux1 = (float *) malloc(Nynew*Nznew*sizeof(float));
@@ -68,52 +69,43 @@ void interpolate_float(char *filenamein, char *filenameout, int Nx,
 		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
 
-  
+  counti = 0;
   for (i=0; i<Nxnew; i++){
     for (j=0; j<Nynew; j++){
       for (k=0; k<Nznew; k++){
 	aux1[j*Nznew + k] = 0.0f; /* Fill output array with zeros */
       }
     }
-    printf("Processing plane %d\n",i);
-    if (i < Nx){
+    if (i < (Nx/2+1) || i > (Nxnew - (Nx/2)) ){
       imspaceid = H5Screate_simple(3,isizem,isizem);
       istart[0] = 0;
       H5Err = H5Sselect_hyperslab(imspaceid,H5S_SELECT_SET,
 				  istart,istride,icount,isizem);
-      istart[0] = i;
+      istart[0] = counti;
       H5Err = H5Sselect_hyperslab(idspaceid,H5S_SELECT_SET,
 				  istart,istride,icount,isizem);
       H5Err = H5Dread(idsetid,H5T_NATIVE_FLOAT,imspaceid,idspaceid,
 		      H5P_DEFAULT,aux);
       H5Err = H5Sclose(imspaceid);
-      if (Nynew > Ny){
-	for (j=0; j<Ny; j++){
+      
+      countj = 0;
+      for (j=0; j<Nynew; j++){
+	if (j < Ny){
 	  /* First and last points are different in linear interpolation */
-	  aux1[j*Nznew] = aux[j*Nz];
+	  aux1[j*Nznew] = aux[countj*Nz]*(Nxnew*Nynew)/(Nx*Ny);
 	  for (k=1; k<Nznew-1; k++){
 	    /* Index */
 	    idx1 = (int) ((float)k*((float)Nz-1.0f)/((float)Nznew-1.0f));
 	    /* Weight */
 	    w = 1.0f - fmodf(((float)k*((float)Nz-1.0f)/((float)Nznew-1.0f)),1.0f);
-	    aux1[j*Nznew + k] = w*aux[j*Nz + idx1] + (1-w)*aux[j*Nz + idx1+1];
+	    aux1[j*Nznew + k] = (w*aux[countj*Nz + idx1] + (1-w)*aux[countj*Nz + idx1+1])*(Nxnew*Nynew)/(Nx*Ny);
 	  }
-	  aux1[j*Nznew + Nznew-1] = aux[j*Nz + Nz-1];
+	  aux1[j*Nznew + Nznew-1] = aux[countj*Nz + Nz-1]*(Nxnew*Nynew)/(Nx*Ny);
+	  countj += 1;
 	}
       }
-      else{
-	for (j=0; j<Nynew; j++){
-	  aux1[j*Nznew] = aux[j*Nz];
-	  for (k=1; k<Nznew-1; k++){
-	    /* Index */
-	    idx1 = (int) ((float)k*((float)Nz-1.0f)/((float)Nznew-1.0f));
-	    /* Weight */
-	    w = 1.0f - fmodf(((float)k*((float)Nz-1.0f)/((float)Nznew-1.0f)),1.0f);
-	    aux1[j*Nznew + k] = w*aux[j*Nz + idx1] + (1-w)*aux[j*Nz + idx1+1];
-	  }
-	  aux1[j*Nznew + Nznew-1] = aux[j*Nz + Nz-1];
-	}
-      }
+      printf("Plane %d to %d\n",counti, i);
+      counti += 1;
     }
     
     omspaceid = H5Screate_simple(3,osizem,osizem);
@@ -125,10 +117,10 @@ void interpolate_float(char *filenamein, char *filenameout, int Nx,
 				ostart,ostride,ocount,osizem);
     H5Err = H5Dwrite(odsetid,H5T_NATIVE_FLOAT,omspaceid,odspaceid,
 		     H5P_DEFAULT,aux1);
-    H5Err = H5Sclose(omspaceid);
-    
+    H5Err = H5Sclose(omspaceid);    
   }
   
+  printf("Counters i: %i, j:%i\n",counti, countj);
   
   H5Err = H5Dclose(idsetid);
   H5Err = H5Sclose(idspaceid);
