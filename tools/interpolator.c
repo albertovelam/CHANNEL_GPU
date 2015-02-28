@@ -40,10 +40,12 @@ void interpolate_float(char *filenamein, char *filenameout, int Nx,
   hid_t ofileid, odsetid, odspaceid, omspaceid;
   hsize_t isizem[3], isized[3], istart[3], istride[3], icount[3];
   hsize_t osizem[3], osized[3], ostart[3], ostride[3], ocount[3];
+  int idx1, idx2;
+  float w;
   float *aux, *aux1;
   
   aux = (float *) malloc(Ny*Nz*sizeof(float));
-  aux1 = (float *) malloc(Nynew*Nz*sizeof(float));
+  aux1 = (float *) malloc(Nynew*Nznew*sizeof(float));
 
 
   ifileid = H5Fopen(filenamein, H5F_ACC_RDONLY, H5P_DEFAULT);
@@ -57,9 +59,9 @@ void interpolate_float(char *filenamein, char *filenameout, int Nx,
 
   ofileid = H5Fcreate(filenameout, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
   ostart[0] = 0; ostart[1] = 0; ostart[2] = 0;
-  osized[0] = Nxnew; osized[1] = Nynew; osized[2] = Nz;
-  osizem[0] = 1; osizem[1] = Nynew; osizem[2] = Nz;
-  ostride[0] = 1; ostride[1] = Nynew; ostride[2] = Nz;
+  osized[0] = Nxnew; osized[1] = Nynew; osized[2] = Nznew;
+  osizem[0] = 1; osizem[1] = Nynew; osizem[2] = Nznew;
+  ostride[0] = 1; ostride[1] = Nynew; ostride[2] = Nznew;
   ocount[0] = 1; ocount[1] = 1; ocount[2] = 1;
   odspaceid = H5Screate_simple(3,osized,osized);
   odsetid = H5Dcreate(ofileid, "u", H5T_NATIVE_FLOAT, odspaceid,
@@ -69,8 +71,8 @@ void interpolate_float(char *filenamein, char *filenameout, int Nx,
   
   for (i=0; i<Nxnew; i++){
     for (j=0; j<Nynew; j++){
-      for (k=0; k<Nz; k++){
-	aux1[j*Nz + k] = 0.0f; /* Fill output array with zeros */
+      for (k=0; k<Nznew; k++){
+	aux1[j*Nznew + k] = 0.0f; /* Fill output array with zeros */
       }
     }
     printf("Processing plane %d\n",i);
@@ -87,16 +89,29 @@ void interpolate_float(char *filenamein, char *filenameout, int Nx,
       H5Err = H5Sclose(imspaceid);
       if (Nynew > Ny){
 	for (j=0; j<Ny; j++){
-	  for (k=0; k<Nz; k++){
-	    aux1[j*Nz + k] = aux[j*Nz + k];
+	  /* First and last points are different in linear interpolation */
+	  aux1[j*Nznew] = aux[j*Nz];
+	  for (k=1; k<Nznew-1; k++){
+	    /* Index */
+	    idx1 = (int) ((float)k*((float)Nz-1.0f)/((float)Nznew-1.0f));
+	    /* Weight */
+	    w = 1.0f - fmodf(((float)k*((float)Nz-1.0f)/((float)Nznew-1.0f)),1.0f);
+	    aux1[j*Nznew + k] = w*aux[j*Nz + idx1] + (1-w)*aux[j*Nz + idx1+1];
 	  }
+	  aux1[j*Nznew + Nznew-1] = aux[j*Nz + Nz-1];
 	}
       }
       else{
 	for (j=0; j<Nynew; j++){
-	  for (k=0; k<Nz; k++){
-	    aux1[j*Nz + k] = aux[j*Nz + k];
+	  aux1[j*Nznew] = aux[j*Nz];
+	  for (k=1; k<Nznew-1; k++){
+	    /* Index */
+	    idx1 = (int) ((float)k*((float)Nz-1.0f)/((float)Nznew-1.0f));
+	    /* Weight */
+	    w = 1.0f - fmodf(((float)k*((float)Nz-1.0f)/((float)Nznew-1.0f)),1.0f);
+	    aux1[j*Nznew + k] = w*aux[j*Nz + idx1] + (1-w)*aux[j*Nz + idx1+1];
 	  }
+	  aux1[j*Nznew + Nznew-1] = aux[j*Nz + Nz-1];
 	}
       }
     }

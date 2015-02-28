@@ -1,7 +1,7 @@
 
 #include "channel.h"
 
-static void __global__ trans_zyx_yblock_to_yzx_kernel(float2* input, float2* output, domain_t domain)
+static void __global__ trans_zyx_yblock_to_yzx_kernel(float2* input, float2* output, int yblock_dim, domain_t domain)
 {
    __shared__ float2 scratch[THREADSPERBLOCK_IN][THREADSPERBLOCK_IN+1];
 
@@ -9,11 +9,10 @@ static void __global__ trans_zyx_yblock_to_yzx_kernel(float2* input, float2* out
   int j_in = blockIdx.y*blockDim.y + threadIdx.x;
   int i    = blockIdx.z;
 
-  int yblock_dim = gridDim.z;
   int yblock_idx = k_in/yblock_dim;
   int yblock_jof = k_in%yblock_dim;
 
-  int index_in = yblock_idx*yblock_dim*yblock_dim*NZ + i*yblock_dim*NZ + yblock_jof*NZ + j_in;
+  int index_in = yblock_idx*yblock_dim*gridDim.z*NZ + i*yblock_dim*NZ + yblock_jof*NZ + j_in;
 
   if(k_in<NY && j_in<NZ){
     scratch[threadIdx.x][threadIdx.y] = input[index_in];
@@ -200,7 +199,7 @@ static void __global__ trans_yzx_to_zyx_kernel(float2* input, float2* output, do
 */
 }
 
-static void __global__ trans_yzx_to_zyx_yblock_kernel(float2* input, float2* output, domain_t domain)
+static void __global__ trans_yzx_to_zyx_yblock_kernel(float2* input, float2* output, int yblock_dim, domain_t domain)
 {
    __shared__ float2 scratch[THREADSPERBLOCK_IN][THREADSPERBLOCK_IN+1];
 /*
@@ -231,11 +230,10 @@ static void __global__ trans_yzx_to_zyx_yblock_kernel(float2* input, float2* out
   int k_ot = blockIdx.x*blockDim.x + threadIdx.y;//yblock_jof;//j_in;
   int j_ot = blockIdx.y*blockDim.y + threadIdx.x;
 
-  int yblock_dim = gridDim.z;
   int yblock_idx = k_ot/yblock_dim;
   int yblock_jof = k_ot%yblock_dim;
 
-  int index_ot = yblock_idx*yblock_dim*yblock_dim*NZ + i*yblock_dim*NZ + yblock_jof*NZ + j_ot;
+  int index_ot = yblock_idx*yblock_dim*gridDim.z*NZ + i*yblock_dim*NZ + yblock_jof*NZ + j_ot;
 
   __syncthreads();
 
@@ -262,7 +260,7 @@ extern void trans_zyx_yblock_to_yzx(float2* input, float2* output,cudaStream_t s
         blocksPerGrid.z=NXSIZE;
 
 
-        trans_zyx_yblock_to_yzx_kernel<<<blocksPerGrid,threadsPerBlock,0,stream>>>(input,output,domain);
+        trans_zyx_yblock_to_yzx_kernel<<<blocksPerGrid,threadsPerBlock,0,stream>>>(input,output,NYSIZE,domain);
         //kernelCheck(RET,"rk_substep",1);
 
         return;
@@ -389,7 +387,7 @@ extern void trans_yzx_to_zyx_yblock(float2* input, float2* output,cudaStream_t s
         blocksPerGrid.z=NXSIZE;
 
 
-        trans_yzx_to_zyx_yblock_kernel<<<blocksPerGrid,threadsPerBlock,0,stream>>>(input,output,domain);
+        trans_yzx_to_zyx_yblock_kernel<<<blocksPerGrid,threadsPerBlock,0,stream>>>(input,output,NYSIZE,domain);
         //kernelCheck(RET,"rk_substep",1);
 
         return;

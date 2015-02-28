@@ -25,10 +25,10 @@ $(GPU_OBJECTS): src/%.o: src/%.cu
 	$(NVCC) -c $(INCLUDES) $(SIZE) $(PATHS) $(DEBUG)  $< -o $@
 
 tools: interpolator.o
-	$(CC) $(PATHS) $(LIBS) tools/interpolator.o -o interpolator.bin
+	$(CC) $(PATHS) $(LIBS) tools/interpolator.o -g -o interpolator.bin
 
 interpolator.o:
-	$(CC) $(INCLUDES) $(SIZE) -c tools/interpolator.c -o tools/interpolator.o
+	$(CC) $(INCLUDES) $(SIZE) -c tools/interpolator.c -g -o tools/interpolator.o
 
 clean:
 	rm src/*.o channelMPI.bin
