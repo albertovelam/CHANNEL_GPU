@@ -129,8 +129,6 @@ void RKstep(float2* ddv,float2* g,float time, domain_t domain, paths_t path){
   int frec=10;
   
   //Calc initial simulation
-  dealias(ddv,domain);
-  dealias(g,domain);
   imposeSymetry(ddv,g,domain);
   calcVdV(ddv,v,dv,domain);
   //while(time_elapsed<time){
@@ -173,15 +171,12 @@ END_RANGE
       
       //Implicit step in u
       implicitSolver_double(g_w,betha[n_step],dt,domain);
-      bilaplaSolver_double(ddv_w,v,dv,betha[n_step],dt,domain);	
+      bilaplaSolver_double(ddv_w,v,dv,u,g,w,betha[n_step],dt,domain);	
       
       //Copy to final buffer		
       CHECK_CUDART( cudaMemcpy(ddv,ddv_w,SIZE,cudaMemcpyDeviceToDevice) );
       CHECK_CUDART( cudaMemcpy(  g,  g_w,SIZE,cudaMemcpyDeviceToDevice) );
-      dealias(ddv,domain);
-      dealias(v,domain);
-      dealias(g,domain);
-      dealias(dv,domain);
+
 END_RANGE
     }
     

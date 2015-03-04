@@ -66,6 +66,63 @@ static __global__ void calcOmegakernel(float2* wx,float2* wy,float2* wz,float2* 
 	
 }
 
+static __global__ void calcWykernel(float2* wy,float2* ux,float2* uz,domain_t domain)
+{
+	/*
+	int j = blockIdx.x * blockDim.x + threadIdx.x;
+	int i = blockIdx.y * blockDim.y + threadIdx.y;
+
+	int k=i%NZ;
+	i=(i-k)/NZ;
+
+		// [i,k,j][NX,NZ,NY]	
+
+	// [j,i,k][NY,NX,NZ]	
+
+	int h=j*NX*NZ+i*NZ+k;
+
+
+	if (i<NX && j<NYSIZE && k<NZ)
+	{
+	*/
+  	int h = blockIdx.x * blockDim.x + threadIdx.x;
+	int k = h%NZ;
+	int j = h/(NX*NZ);
+	int i = (h-j*NX*NZ)/NX;
+  	if(h<NYSIZE*NX*NZ)
+    	{
+	
+	float k1;
+	float k3;
+
+	// X indices		
+	k1=(i)<NX/2 ? (float)(i) : (float)(i)-(float)NX ;
+	
+	// Z indices
+	k3=(float)k;	
+
+	//Set to LX and LZ
+	//Fraction
+	k1=(PI2/LX)*k1;
+	k3=(PI2/LZ)*k3;	
+
+	float2 u1=ux[h];
+	float2 u3=uz[h];
+
+	float2 w2;
+
+	w2.x=-(k3*u1.y-k1*u3.y);
+	w2.y=  k3*u1.x-k1*u3.x ;
+		
+	//Write
+	wy[h]=w2;
+	
+	
+	
+	}
+	
+	
+}
 
 static __global__ void rotor_3(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,float2* uz, int elements, domain_t domain)
 {
@@ -279,7 +336,29 @@ extern void calcOmega(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,flo
 
 //END_RANGE
 }
-/*
+
+extern void calcWy(float2* wy,float2* ux,float2* uz,domain_t domain){
+
+	/*
+	threadsPerBlock.x=THREADSPERBLOCK_IN;
+	threadsPerBlock.y=THREADSPERBLOCK_IN;
+
+
+	blocksPerGrid.x=NYSIZE/threadsPerBlock.x;
+	blocksPerGrid.y=NZ*NX/threadsPerBlock.y;
+	*/
+
+	dim3 grid,block;
+	block.x = 128;
+	grid.x = (NYSIZE*NX*NZ + block.x - 1)/block.x;
+
+	calcWykernel<<<grid,block>>>(wy,ux,uz,domain);
+
+
+
+}
+
+
 extern void calcRotor(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,float2* uz, domain_t domain){
 //START_RANGE("calcRotor",30)
 	
@@ -295,7 +374,7 @@ extern void calcRotor(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,flo
 //END_RANGE
 
 }
-*/
+
 extern  void calcRotor3(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,float2* uz, domain_t domain )
 {
 //START_RANGE_ASYNC("rotor_3",29)

@@ -4,7 +4,7 @@
 #include <cuda_runtime.h>
 #include <cuda_runtime_api.h>
 
-//#include <cusparse_v2.h>
+#include <cusparse_v2.h>
 #include <cublas_v2.h>
 #include <cufft.h>
 #include <math.h>
@@ -54,6 +54,7 @@ typedef struct paths_t{
 #error "Sizes have to be defined at compile time"
 #endif
 
+
 //Dimensions in Y direction 
 // h=1.0f channel height 2.0f
 
@@ -80,6 +81,14 @@ typedef struct paths_t{
 
 //size local
 #define SIZE NXSIZE*NY*NZ*sizeof(float2)
+
+//Padded dimensions
+
+#define NXP  3*NX/2
+#define NZP (3*(2*NZ-2)/4+1)
+
+//Steps for the padded convolution
+#define NSTEPS_CONV 1
 
 static cublasHandle_t   CUBLAS_HANDLE; 
 static cudaError_t RET;
@@ -257,11 +266,17 @@ void fftForward(float2* buffer, domain_t domain);
 void fftBackwardTranspose(float2* u2, domain_t domain);
 void fftForwardTranspose(float2* u2, domain_t domain);
 
+void fftBackwardPadded(float2* buffer, domain_t domain);
+void fftForwardPadded(float2* buffer, domain_t domain);
+
 void calcUmax(float2* u_x,float2* u_y,float2* u_z,float* ux,float* uy,float* uz, domain_t domain);
 void calcDmax(float2* u_x,float2* u_y,float* ux,float* uy, domain_t domain);
 
 float sumElementsReal(float2* buffer_1, domain_t domain);
 void sumElementsComplex(float2* buffer_1,float* out, domain_t domain);
+
+void forwardTranspose(float2* u2,domain_t domain);
+void backwardTranspose(float2* u2,domain_t domain);
 
 //Rk
 
@@ -374,6 +389,9 @@ extern void setImplicitDouble(domain_t domain);
 extern void implicitSolver(float2* u,float betha,float dt, domain_t domain);
 extern void implicitSolver_double(float2* u,float betha,float dt, domain_t domain);
 
+
+extern void implicitSolver_double_bilaplacian(float2* u,float betha,float dt, domain_t domain);
+
 //Derivatives
 
 extern void setDerivatives_HO(domain_t domain);
@@ -393,6 +411,7 @@ extern void scale(float2* u,float S, domain_t domain);
 //Convolution kernels
 
 extern void calcOmega(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,float2* uz, domain_t domain);
+extern void calcWy(float2* wy,float2* ux,float2* uz,domain_t domain);
 extern void calcRotor(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,float2* uz, domain_t domain);
 extern void calcRotor3(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,float2* uz, domain_t domain );
 extern void calcRotor12(float2* wx,float2* wy,float2* wz,float2* ux,float2* uy,float2* uz, domain_t domain );
@@ -410,11 +429,18 @@ extern void mpiCheck( int error, const char* function);
 //Bilaplacian
 
 extern void bilaplaSolver(float2* ddv,float2* v,float2* dv,float betha,float dt, domain_t domain);
-extern void bilaplaSolver_double(float2* ddv, float2* v, float2* dv, float betha,float dt, domain_t domain);
+extern void bilaplaSolver_double(float2* ddv, float2* v, float2* dv, float2* ddv_w,float2* v_w,float2* dv_w,float betha,float dt, domain_t domain);
 
 
 //Phase shift 
-extern void phaseShift(float2* tx,float2* ty,float2* tz,float Delta1,float Delta3);
-extern void sumCon(float2* ax,float2* ay,float2* az,float2* tx,float2* ty,float2* tz);
+extern void phaseShiftBackward(float2* ux,float2* uy,float2* uz,float2* tx,float2* ty,float2* tz,float Delta1,float Delta3,domain_t domain);
+extern void phaseShiftForward(float2* ux,float2* uy,float2* uz,float2* tx,float2* ty,float2* tz,float Delta1,float Delta3,domain_t domain);
+extern void sumCon(float2* ax,float2* ay,float2* az,float2* tx,float2* ty,float2* tz,domain_t domain);
+
+//Zero padding
+extern void padForward(float2* aux,float2* u,domain_t domain);
+extern void padBackward(float2* u,float2* aux,domain_t domain);
+extern void calcRotorZeroPadding(float2* wx,float2* wy,float2* wz,float2* u,float2* v,float2* w,domain_t domain);
+
 
 

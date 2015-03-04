@@ -156,11 +156,11 @@ if(domain.rank==0){
   printf("Impl\tfree: %lld MB \ttot: %lld MB \tused: %lld MB \tdelta: %11d MB\n",free,tot,used,dused);
 }
     
-#ifdef USE_CUSPARSE
+//#ifdef USE_CUSPARSE
 	CHECK_CUDART( cudaMalloc(&LDIAG,SIZE_AUX) );
 	CHECK_CUDART( cudaMalloc(&CDIAG,SIZE_AUX) );
 	CHECK_CUDART( cudaMalloc(&UDIAG,SIZE_AUX) );
-#endif
+//#endif
 	//AUX FOR TRANPOSE
 	//cudaCheck(cudaMalloc(&AUX,SIZE_AUX),domain,"malloc");
         AUX = (double2*)aux_dev[4];

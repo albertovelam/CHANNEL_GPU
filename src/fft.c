@@ -4,6 +4,9 @@ static cufftHandle fft2_r2c;
 static cufftHandle fft2_c2r; 
 static cufftHandle fft2_sum; 
 
+static cufftHandle fft2_r2c_padded; 
+static cufftHandle fft2_c2r_padded; 
+
 static cublasHandle_t cublasHandle;
 
 
@@ -38,6 +41,13 @@ void fftSetup(domain_t domain)
   CHECK_CUFFT( cufftPlanMany( &fft2_r2c,2,n2,inembed,istride,idist,onembed,ostride,odist,CUFFT_R2C,NYSIZE) );
   CHECK_CUFFT( cufftPlanMany( &fft2_c2r,2,n2,onembed,ostride,odist,inembed,istride,idist,CUFFT_C2R,NYSIZE) );
   CHECK_CUFFT( cufftPlanMany(&fft2_sum,2,nsum,NULL,1,0,NULL,1,0,CUFFT_R2C,NY) );
+
+	
+  //FFT_s for padded convolution
+  int np[2]={NXP,2*NZP-2};
+  CHECK_CUFFT(cufftPlanMany( &fft2_r2c_padded,2,np,NULL,1,0,NULL,1,0,CUFFT_R2C,NYSIZE/NSTEPS_CONV));
+  CHECK_CUFFT(cufftPlanMany( &fft2_c2r_padded,2,np,NULL,1,0,NULL,1,0,CUFFT_C2R,NYSIZE/NSTEPS_CONV));
+  /////
 
   CHECK_CUDART( cudaStreamCreate(&compute_stream) );
   CHECK_CUDART( cudaStreamCreate(&h2d_stream) );
@@ -280,6 +290,70 @@ void fftForwardTranspose(float2* u2, domain_t domain){
   
   return;
   
+}
+
+void forwardTranspose(float2* u2,domain_t domain){
+
+	//Traspuesta de COMPLEJA
+
+	//cufftCheck(cufftExecR2C(fft2_r2c,(float*)u2,(float2*)aux),"forward transform");
+	
+		
+	//fftForward(u2);	
+	
+	//Transpuesta de [j,i,k][NY,NX,NZ] a -----> [i,k,j][NX,NZ,NY]
+    //transpose_B(aux,u2);
+	//cudaCheck(cudaMemcpy(u2,aux,SIZE,cudaMemcpyDeviceToDevice),"MemInfo1");
+
+  	transposeXYZ2YZX(u2,
+		   domain.ny,
+		   domain.nx,
+		   domain.nz,
+		   domain.rank,
+		   domain.size,domain);	
+  
+
+	return;
+
+}
+
+void backwardTranspose(float2* u2,domain_t domain){
+
+	//Traspuesta de COMPLEJA
+
+	//Transpuesta de [i,k,j][NX,NZ,NY] a -----> [j,i,k][NY,NX,NZ]
+	//transpose_A(aux,u2);
+	
+	
+	//cudaCheck(cudaMemcpy(u2,aux,SIZE,cudaMemcpyDeviceToDevice),"MemInfo1");
+	//fftBackward(u2);
+
+	//cufftCheck(cufftExecC2R(fft2_c2r,(float2*)aux,(float*)u2),"forward transform");
+
+   transposeYZX2XYZ(u2,
+		   domain.ny,
+		   domain.nx,
+		   domain.nz,
+		   domain.rank,
+		   domain.size, domain);	
+	
+	return;
+
+}
+
+void fftForwardPadded(float2* buffer, domain_t domain)
+{
+  CHECK_CUFFT(cufftExecR2C(fft2_r2c_padded,(float*)buffer,(float2*)buffer));
+	
+  return;
+}
+
+void fftBackwardPadded(float2* buffer, domain_t domain)
+{
+  CHECK_CUFFT(cufftExecC2R(fft2_c2r_padded,(float2*)buffer,(float*)buffer));
+		
+  return;	
+
 }
 
 /*

@@ -141,8 +141,10 @@ int main(int argc, char** argv)
   /*
     checkDerivatives();
     checkHemholzt();
-    checkImplicit();
-  */
+    checkImplicit();*/
+    //checkImplicit(domain);
+    //checkBilaplacian(domain);
+  
 
   if(rank == 0){	
     printf("Starting RK iterations...\n\n");
