@@ -16,9 +16,18 @@ config_t read_config_file(char* name){
 
 
 void read_domain_from_config(domain_t *domain,config_t *config){
+  double dummy;
   config_lookup_int(config, "application.NX", &(*domain).nx);
   config_lookup_int(config, "application.NY", &(*domain).ny);
   config_lookup_int(config, "application.NZ", &(*domain).nz);
+  config_lookup_float(config, "application.LX", &dummy);
+  domain->lx = PI * (float)dummy;
+  config_lookup_float(config, "application.LZ", &dummy);
+  domain->lz = PI * (float)dummy;
+  config_lookup_float(config, "application.REYNOLDS", &dummy);
+  domain->reynolds = (float)dummy;
+  config_lookup_float(config, "application.MASSFLUX", &dummy);
+  domain->massflux = (float)dummy;
   return;
 }
 
@@ -36,7 +45,14 @@ void read_filenames_from_config(paths_t *path, config_t *config){
   strcpy(path->umeaninput,dummy);
   config_lookup_string(config, "application.output.UMEAN",&dummy);
   strcpy(path->umeanoutput,dummy);
-  config_lookup_string(config, "application.path",&dummy);
+  config_lookup_string(config, "application.input.WMEAN",&dummy);
+  strcpy(path->wmeaninput,dummy);
+  config_lookup_string(config, "application.output.WMEAN",&dummy);
+  strcpy(path->wmeanoutput,dummy);
+  config_lookup_string(config, "application.PATH",&dummy);
   strcpy(path->path,dummy);
+  config_lookup_int(config, "application.FREQ_STATS",&(*path).freq_stats);
+  config_lookup_int(config, "application.FREQ_PRINT",&(*path).freq_print);
+  config_lookup_int(config, "application.NSTEPS",&(*path).nsteps);
   return;
 }

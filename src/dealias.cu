@@ -8,7 +8,7 @@ static dim3 blocksPerGrid;
 
 static __global__ void dealiaskernel(float2* u,domain_t domain)
 {
-	
+/*	
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   int k = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -20,12 +20,18 @@ static __global__ void dealiaskernel(float2* u,domain_t domain)
   int h=i*NY*NZ+k*NY+j;
 
   if (i<NXSIZE && j<NY && k<NZ)
+*/
+  int h = blockIdx.x * blockDim.x + threadIdx.x;
+//  int j = h%NY;
+  int i = h/(NY*NZ);
+  int k = (h-i*NY*NZ)/NY;
+  if(h<NXSIZE*NY*NZ)
     {
 	
       float k1;
       float k3;
 
-      float kk;
+//      float kk;
 
       // X indices		
       k1=(i+IGLOBAL)<NX/2 ? (float)(i+IGLOBAL) : (float)(i+IGLOBAL)-(float)NX ;
@@ -46,7 +52,7 @@ static __global__ void dealiaskernel(float2* u,domain_t domain)
 
 static __global__ void zerokernel(float2* u1, domain_t domain)
 {
-	
+/*	
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   int k = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -58,6 +64,12 @@ static __global__ void zerokernel(float2* u1, domain_t domain)
   int h=i*NY*NZ+k*NY+j;
 
   if (i<NXSIZE && j<NY && k<NZ)
+*/
+  int h = blockIdx.x * blockDim.x + threadIdx.x;
+//  int j = h%NY;
+//  int i = h/(NY*NZ);
+//  int k = (h-i*NY*NZ)/NY;
+  if(h<NXSIZE*NY*NZ)
     {
 		
       u1[h].x=0.0f;
@@ -71,7 +83,7 @@ static __global__ void zerokernel(float2* u1, domain_t domain)
 
 static __global__ void normalizekernel(float2* u1, domain_t domain)
 {
-	
+/*	
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   int k = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -83,6 +95,12 @@ static __global__ void normalizekernel(float2* u1, domain_t domain)
   int h=i*NY*NZ+k*NY+j;
 
   if (i<NXSIZE && j<NY && k<NZ)
+*/
+  int h = blockIdx.x * blockDim.x + threadIdx.x;
+//  int j = h%NY;
+//  int i = h/(NY*NZ);
+//  int k = (h-i*NY*NZ)/NY;
+  if(h<NXSIZE*NY*NZ)
     {
 	
       int N2=NX*(2*NZ-2);		
@@ -98,7 +116,7 @@ static __global__ void normalizekernel(float2* u1, domain_t domain)
 
 static __global__ void scalekernel(float2* u,float S,domain_t domain)
 {
-	
+/*	
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   int k = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -110,20 +128,22 @@ static __global__ void scalekernel(float2* u,float S,domain_t domain)
   int h=i*NY*NZ+k*NY+j;
 
   if (i<NXSIZE && j<NY && k<NZ)
+*/
+  int h = blockIdx.x * blockDim.x + threadIdx.x;
+//  int j = h%NY;
+//  int i = h/(NY*NZ);
+//  int k = (h-i*NY*NZ)/NY;
+  if(h<NXSIZE*NY*NZ)
     {
-	
       u[h].x*=S;
       u[h].y*=S;
-	
-	
     }
-	
 	
 }
 
 extern void dealias(float2* u, domain_t domain){
-
-		
+START_RANGE("dealias",12)
+/*		
   threadsPerBlock.x=THREADSPERBLOCK_IN;
   threadsPerBlock.y=THREADSPERBLOCK_IN;
 
@@ -134,9 +154,13 @@ extern void dealias(float2* u, domain_t domain){
 	
   dealiaskernel<<<blocksPerGrid,threadsPerBlock>>>(u,domain);
   kernelCheck(RET,domain,"Boundary");
-	
+*/
+  dim3 grid,block;
+  block.x = 128;
+  grid.x = (NXSIZE*NY*NZ + block.x - 1)/block.x;
+  dealiaskernel<<<grid,block>>>(u,domain);	
 
-
+END_RANGE
   return;
 
 }
@@ -146,8 +170,8 @@ extern void dealias(float2* u, domain_t domain){
 
 
 extern void set2zero(float2* u, domain_t domain){
-
-
+START_RANGE("set2zero",13)
+/*
   threadsPerBlock.x=THREADSPERBLOCK_IN;
   threadsPerBlock.y=THREADSPERBLOCK_IN;
 
@@ -158,13 +182,20 @@ extern void set2zero(float2* u, domain_t domain){
 	
   zerokernel<<<blocksPerGrid,threadsPerBlock>>>(u,domain);
   kernelCheck(RET,domain,"Boundary");	
-	
+*/
+  dim3 grid,block;
+  block.x = 128;
+  grid.x = (NXSIZE*NY*NZ + block.x - 1)/block.x;
+  zerokernel<<<grid,block>>>(u,domain);
+
+END_RANGE	
   return;
 }
 
 extern void normalize(float2* u, domain_t domain){
 
-
+START_RANGE("normalize",14)
+/*
   threadsPerBlock.x=THREADSPERBLOCK_IN;
   threadsPerBlock.y=THREADSPERBLOCK_IN;
 
@@ -175,13 +206,19 @@ extern void normalize(float2* u, domain_t domain){
 	
   normalizekernel<<<blocksPerGrid,threadsPerBlock>>>(u,domain);
   kernelCheck(RET,domain,"Boundary"); 
-	
+*/
+  dim3 grid,block;
+  block.x = 128;
+  grid.x = (NXSIZE*NY*NZ + block.x - 1)/block.x;
+  normalizekernel<<<grid,block>>>(u,domain);
+
+END_RANGE	
   return;
 }
 
 extern void scale(float2* u,float S,domain_t domain){
-
-
+START_RANGE("scale",15)
+/*
   threadsPerBlock.x=THREADSPERBLOCK_IN;
   threadsPerBlock.y=THREADSPERBLOCK_IN;
 
@@ -192,7 +229,13 @@ extern void scale(float2* u,float S,domain_t domain){
 	
   scalekernel<<<blocksPerGrid,threadsPerBlock>>>(u,S,domain);
   kernelCheck(RET,domain,"Boundary");	
-	
+*/
+  dim3 grid,block;
+  block.x = 128;
+  grid.x = (NXSIZE*NY*NZ + block.x - 1)/block.x;
+  scalekernel<<<grid,block>>>(u,S,domain);
+
+END_RANGE	
   return;
 }
 

@@ -8,9 +8,9 @@ static dim3 blocksPerGrid;
 static __global__ void calcUWkernel(float2* ux,float2* uz, float2* f,
 				    float2* g,domain_t domain)
 {
-	
-  int i = blockIdx.x * blockDim.x + threadIdx.x;
-  int k = blockIdx.y * blockDim.y + threadIdx.y;
+/*	
+  int k = blockIdx.x * blockDim.x + threadIdx.x;
+  int i = blockIdx.y * blockDim.y + threadIdx.y;
 
   int j=k%NY;
   k=(k-j)/NY;
@@ -20,6 +20,12 @@ static __global__ void calcUWkernel(float2* ux,float2* uz, float2* f,
   int h=i*NY*NZ+k*NY+j;
 
   if (i<NXSIZE && j<NY && k<NZ)
+*/
+  int h = blockIdx.x * blockDim.x + threadIdx.x;
+//  int j = h%NY;
+  int i = h/(NY*NZ);
+  int k = (h-i*NY*NZ)/NY;
+  if(h<NXSIZE*NY*NZ)
     {
 	
       float k1;
@@ -93,9 +99,9 @@ static __global__ void calcUWkernel(float2* ux,float2* uz, float2* f,
 
 static __global__ void calcHvgkernel(float2* hx,float2* hz,domain_t domain)
 {
-	
-  int i = blockIdx.x * blockDim.x + threadIdx.x;
-  int k = blockIdx.y * blockDim.y + threadIdx.y;
+/*	
+  int k = blockIdx.x * blockDim.x + threadIdx.x;
+  int i = blockIdx.y * blockDim.y + threadIdx.y;
 
   int j=k%NY;
   k=(k-j)/NY;
@@ -103,6 +109,12 @@ static __global__ void calcHvgkernel(float2* hx,float2* hz,domain_t domain)
   int h=i*NY*NZ+k*NY+j;
 
   if (i<NXSIZE && j<NY && k<NZ)
+*/
+  int h = blockIdx.x * blockDim.x + threadIdx.x;
+//  int j = h%NY;
+  int i = h/(NY*NZ);
+  int k = (h-i*NY*NZ)/NY;
+  if(h<NXSIZE*NY*NZ)
     {
 	
       float k1;
@@ -144,8 +156,9 @@ static __global__ void calcHvgkernel(float2* hx,float2* hz,domain_t domain)
 
 static __global__ void calcHvvkernel(float2* hx,float2* hy,domain_t domain)
 {
-  int i = blockIdx.x * blockDim.x + threadIdx.x;
-  int k = blockIdx.y * blockDim.y + threadIdx.y;
+/*
+  int k = blockIdx.x * blockDim.x + threadIdx.x;
+  int i = blockIdx.y * blockDim.y + threadIdx.y;
 
   int j=k%NY;
   k=(k-j)/NY;
@@ -153,6 +166,12 @@ static __global__ void calcHvvkernel(float2* hx,float2* hy,domain_t domain)
   int h=i*NY*NZ+k*NY+j;
 
   if (i<NXSIZE && j<NY && k<NZ)
+*/
+  int h = blockIdx.x * blockDim.x + threadIdx.x;
+//  int j = h%NY;
+  int i = h/(NY*NZ);
+  int k = (h-i*NY*NZ)/NY;
+  if(h<NXSIZE*NY*NZ)
     {
 	
       float k1;
@@ -192,40 +211,51 @@ static __global__ void calcHvvkernel(float2* hx,float2* hy,domain_t domain)
 ///////////////////FUNCTIONS////////////////////////
 
 extern void calcUW(float2* ux,float2* uz, float2* f,float2* g,domain_t domain){
-
+START_RANGE("calcUW",22)
+/*
   threadsPerBlock.x= THREADSPERBLOCK_IN;
   threadsPerBlock.y= THREADSPERBLOCK_IN;
 
-  blocksPerGrid.x=NXSIZE/threadsPerBlock.x;
-  blocksPerGrid.y=NZ*NY/threadsPerBlock.y;
+  blocksPerGrid.y=NXSIZE/threadsPerBlock.x;
+  blocksPerGrid.x=NZ*NY/threadsPerBlock.y;
 
   //Calcs ux and uz out of dd_v and w_y	
 
   calcUWkernel<<<blocksPerGrid,threadsPerBlock>>>(ux,uz,f,g,domain);
   kernelCheck(RET,domain,"W_kernel");
+*/
+  dim3 grid,block;
+  block.x = 128;
+  grid.x = (NXSIZE*NY*NZ + block.x - 1)/block.x;
+  calcUWkernel<<<grid,block>>>(ux,uz,f,g,domain);
 
+END_RANGE
   return;
 
 }
 
 
 extern void calcHvg(float2* nl_x,float2* nl_y,float2* nl_z, domain_t domain){
-
+START_RANGE("calcHvg",23)
   //Calcs h_g and h_v out of nonlinear terms in x,y and z
-	
+/*	
   threadsPerBlock.x= THREADSPERBLOCK_IN;
   threadsPerBlock.y= THREADSPERBLOCK_IN;
 
-  blocksPerGrid.x=NXSIZE/threadsPerBlock.x;
-  blocksPerGrid.y=NZ*NY/threadsPerBlock.y;
+  blocksPerGrid.y=NXSIZE/threadsPerBlock.x;
+  blocksPerGrid.x=NZ*NY/threadsPerBlock.y;
 
   calcHvgkernel<<<blocksPerGrid,threadsPerBlock>>>(nl_x,nl_z,domain);
   kernelCheck(RET,domain,"W_kernel");
+*/
+  dim3 grid,block;
+  block.x = 128;
+  grid.x = (NXSIZE*NY*NZ + block.x - 1)/block.x;
 
+  calcHvgkernel<<<grid,block>>>(nl_x,nl_z,domain);
   deriv_Y_HO_double(nl_x, domain);
-
-  calcHvvkernel<<<blocksPerGrid,threadsPerBlock>>>(nl_x,nl_y,domain);
-  kernelCheck(RET,domain,"W_kernel");
+  calcHvvkernel<<<grid,block>>>(nl_x,nl_y,domain);
+//  kernelCheck(RET,domain,"W_kernel");
 
   return;
 
